@@ -52,14 +52,14 @@ function renderGames() {
 
 function openGame(game) {
   title.textContent = game.title;
-  frame.srcdoc = game.html || "";
+  frame.src = game.src;
   player.classList.add("open");
   document.querySelector("#back").focus();
 }
 
 function closeGame() {
   player.classList.remove("open");
-  frame.srcdoc = "";
+  frame.removeAttribute("src");
   if (location.hash.startsWith("#jugar-")) {
     history.replaceState(null, "", `${location.pathname}${location.search}`);
   }

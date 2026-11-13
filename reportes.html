@@ -10,31 +10,11 @@
     .page-intro { padding: clamp(2.5rem, 7vw, 5rem) 0 2rem; }
     .page-intro h1 { font-size: clamp(2rem, 6vw, 3.8rem); }
     .page-intro p { max-width: 62ch; color: var(--muted); }
-    .report-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(230px, .8fr); gap: 1.4rem; align-items: start; padding-bottom: 4rem; }
-    .report-form, .privacy-note { padding: clamp(1.2rem, 4vw, 1.8rem); }
-    .report-form { display: grid; gap: 1rem; }
-    .report-form label { display: grid; gap: .4rem; font-weight: 500; }
-    .report-form input, .report-form select, .report-form textarea {
-      width: 100%;
-      padding: .75rem .85rem;
-      border: 1px solid var(--line);
-      border-radius: .7rem;
-      background: var(--bg);
-      color: var(--text);
-    }
-    .report-form textarea { min-height: 120px; resize: vertical; }
-    .report-form small { color: var(--muted); font-weight: 400; }
-    .privacy-note h2 { font: 1.05rem "Rubik", system-ui, sans-serif; font-weight: 700; }
-    .privacy-note p { color: var(--muted); font-size: .93rem; }
-    .result { grid-column: 1 / -1; padding: 1.3rem; }
-    .result h2 { font-size: 1.2rem; }
-    .result textarea { width: 100%; min-height: 210px; margin: .7rem 0 1rem; padding: .8rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--bg); color: var(--text); }
-    .result-actions { display: flex; flex-wrap: wrap; gap: .7rem; }
-    .status { min-height: 1.6em; color: var(--aqua); }
-    @media (max-width: 760px) { .report-layout { grid-template-columns: 1fr; } .result { grid-column: auto; } }
+    .contact-card { max-width: 720px; margin-bottom: 4rem; padding: clamp(1.4rem, 5vw, 2.5rem); }
+    .contact-card h2 { margin: 0 0 .6rem; font: 1.2rem "Rubik", system-ui, sans-serif; font-weight: 700; }
+    .contact-card p { color: var(--muted); }
+    .mail-address { display: inline-block; margin: .3rem 0 1.3rem; color: var(--aqua); font-size: clamp(1.1rem, 4vw, 1.5rem); font-weight: 700; overflow-wrap: anywhere; }
   </style>
-  <script src="games.js"></script>
-  <script defer src="reportes.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -51,54 +31,17 @@
       <section class="page-intro">
         <p class="eyebrow">Ayúdanos a mejorar</p>
         <h1>¿Algo se ha roto?</h1>
-        <p>Cuéntanos qué pasó y prepararemos un informe claro, con los datos necesarios para poder reproducir el problema.</p>
+        <p>Escríbeme directamente y cuéntame qué ha pasado. ¡Gracias por ayudar a mejorar los juegos!</p>
       </section>
-      <div class="report-layout">
-        <form id="report-form" class="report-form panel">
-          <label for="game">Juego
-            <select id="game" name="game" required></select>
-          </label>
-          <label for="title">Resumen del problema
-            <input id="title" name="title" maxlength="120" required placeholder="El juego se congela al empezar">
-          </label>
-          <label for="steps">Pasos para reproducirlo
-            <textarea id="steps" name="steps" maxlength="2000" required placeholder="1. Abre el juego&#10;2. Pulsa ..."></textarea>
-            <small>Describe qué hiciste justo antes de que apareciera el problema.</small>
-          </label>
-          <label for="expected">¿Qué esperabas que ocurriera?
-            <textarea id="expected" name="expected" maxlength="1000" placeholder="El personaje debería moverse."></textarea>
-          </label>
-          <label for="actual">¿Qué ocurrió en realidad?
-            <textarea id="actual" name="actual" maxlength="1000" required placeholder="La pantalla se quedó en negro."></textarea>
-          </label>
-          <label for="severity">Impacto
-            <select id="severity" name="severity">
-              <option value="Bajo">Bajo: detalle visual o molestia menor</option>
-              <option value="Medio" selected>Medio: afecta parte del juego</option>
-              <option value="Alto">Alto: bloquea el juego o el progreso</option>
-            </select>
-          </label>
-          <button class="btn" type="submit">Preparar informe</button>
-          <p id="status" class="status" role="status" aria-live="polite"></p>
-        </form>
-        <aside class="privacy-note panel">
-          <h2>¿Cómo funciona?</h2>
-          <p>Esta web está alojada como sitio estático, así que no puede guardar ni enviar informes por sí sola.</p>
-          <p>Al preparar el informe podrás copiarlo o descargarlo como archivo de texto para enviárselo al equipo. No se envía nada automáticamente.</p>
-          <p>La información de navegador y pantalla se añade para ayudar a encontrar el fallo.</p>
-        </aside>
-        <section id="result" class="result panel" hidden aria-labelledby="result-title">
-          <h2 id="result-title">Tu informe está listo</h2>
-          <label for="report-text">Revísalo antes de compartirlo</label>
-          <textarea id="report-text" readonly></textarea>
-          <div class="result-actions">
-            <button id="copy" class="btn" type="button">Copiar informe</button>
-            <button id="download" class="btn secondary" type="button">Descargar .txt</button>
-          </div>
-        </section>
-      </div>
+      <section class="contact-card panel">
+        <h2>Envíame un correo</h2>
+        <p>Puedes escribir directamente a esta dirección:</p>
+        <a class="mail-address" href="mailto:diazrivasantonio06@gmail.com">diazrivasantonio06@gmail.com</a>
+        <p>Si puedes, incluye el nombre del juego y los pasos para reproducir el problema.</p>
+        <a class="btn" href="mailto:diazrivasantonio06@gmail.com?subject=Reporte%20de%20error%20-%201DAW.io">Abrir mi correo</a>
+      </section>
     </main>
-    <footer><span>© <span data-year></span> 1DAW.io</span><span>Gracias por ayudarnos a mejorar.</span></footer>
+    <footer><span>© 1DAW.io</span><span>Gracias por ayudarnos a mejorar.</span></footer>
   </div>
 </body>
 </html>

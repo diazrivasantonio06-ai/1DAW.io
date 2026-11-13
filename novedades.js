@@ -9,6 +9,13 @@ const UPDATES = [
   //   title: "Título de la actualización",
   //   changes: ["Primer cambio", "Segundo cambio"]
   // }
+  {
+    game: "Nombre del juego",
+    version: "1.0",
+    date: "2026-11-13",
+    title: "Título de la actualización",
+    changes: ["Primer cambio", "Segundo cambio"]
+  }
 ];
 
 const updatesList = document.querySelector("#updates");
