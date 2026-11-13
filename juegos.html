@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11101e">
+  <title>Juegos | 1DAW.io</title>
+  <link rel="stylesheet" href="site.css">
+  <style>
+    .page-intro { padding: clamp(2.5rem, 7vw, 5rem) 0 2rem; }
+    .page-intro h1 { font-size: clamp(2rem, 6vw, 3.8rem); }
+    .page-intro p { max-width: 56ch; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 1.35rem; padding-bottom: 4rem; }
+    .cart {
+      position: relative;
+      display: flex;
+      min-height: 340px;
+      flex-direction: column;
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 1.2rem;
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: transform .18s, border-color .18s, box-shadow .18s;
+    }
+    .cart:hover { transform: translateY(-6px) rotate(-.5deg); border-color: var(--pink); box-shadow: 0 18px 45px rgb(0 0 0 / 24%); }
+    .cart:focus-visible { outline-offset: 3px; }
+    .art {
+      position: relative;
+      display: grid;
+      min-height: 178px;
+      place-items: center;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--c) 72%, white 10%), var(--c) 72%);
+    }
+    .art::before, .art::after { position: absolute; content: ""; border: 1px solid rgb(255 255 255 / 19%); transform: rotate(28deg); }
+    .art::before { width: 240px; height: 100px; }
+    .art::after { width: 180px; height: 260px; }
+    .emoji { z-index: 1; font-size: 5rem; filter: drop-shadow(0 8px 10px rgb(0 0 0 / 35%)); }
+    .cart-info { display: flex; flex: 1; flex-direction: column; align-items: flex-start; padding: 1.1rem 1.2rem 1.3rem; }
+    .cart-title { font-size: 1.2rem; font-weight: 700; }
+    .cart-description { margin: .5rem 0 1rem; color: var(--muted); font-size: .94rem; }
+    .tag { margin-top: auto; padding: .28rem .7rem; border: 1px solid rgb(98 234 215 / 35%); border-radius: 999px; color: var(--aqua); font-size: .78rem; font-weight: 700; }
+    .empty { display: grid; min-height: 340px; align-content: center; justify-items: center; padding: 1.5rem; border: 1px dashed var(--line); border-radius: 1.2rem; color: var(--muted); text-align: center; }
+    .empty strong { color: var(--text); font: 1rem var(--font-display); }
+    #player { position: fixed; inset: 0; z-index: 10; display: none; flex-direction: column; background: var(--bg); }
+    #player.open { display: flex; }
+    .player-bar { display: flex; min-height: 60px; align-items: center; gap: 1rem; padding: .5rem 1rem; border-bottom: 1px solid var(--line); }
+    .player-bar strong { overflow: hidden; font-family: var(--font-display); font-size: .9rem; text-overflow: ellipsis; white-space: nowrap; }
+    #frame { flex: 1; width: 100%; border: 0; background: #000; }
+  </style>
+  <script src="games.js"></script>
+  <script defer src="juegos.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="logo" href="index.html">1DAW<span>.</span>io</a>
+      <nav aria-label="Navegación principal">
+        <a href="index.html">Inicio</a>
+        <a href="juegos.html" aria-current="page">Juegos</a>
+        <a href="novedades.html">Novedades</a>
+        <a href="reportes.html">Reportar un bug</a>
+      </nav>
+    </header>
+    <main>
+      <section class="page-intro">
+        <p class="eyebrow">La colección</p>
+        <h1>Elige tu próxima partida.</h1>
+        <p>Cartuchos hechos por nosotros, listos para jugar desde el navegador. Pulsa uno para empezar.</p>
+      </section>
+      <section id="grid" class="grid" aria-label="Lista de juegos"></section>
+    </main>
+    <footer><span>© <span data-year></span> 1DAW.io</span><span>Hecho con cariño y muchas partidas.</span></footer>
+  </div>
+  <div id="player" role="dialog" aria-modal="true" aria-label="Juego">
+    <div class="player-bar">
+      <button class="btn secondary" id="back" type="button">← Volver a los juegos</button>
+      <strong id="ptitle"></strong>
+    </div>
+    <iframe id="frame" title="Juego" sandbox="allow-scripts allow-pointer-lock allow-same-origin"></iframe>
+  </div>
+</body>
+</html>
