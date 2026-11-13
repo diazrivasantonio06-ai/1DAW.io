@@ -1,8 +1,18 @@
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   display_name text not null check (char_length(display_name) between 1 and 24),
+  active_seconds bigint not null default 0 check (active_seconds >= 0),
+  last_active_at timestamptz,
+  avatar_id text not null default 'avatar-arcade',
+  banner_id text not null default 'banner-neon',
   created_at timestamptz not null default now()
 );
+
+alter table public.profiles
+  add column if not exists active_seconds bigint not null default 0 check (active_seconds >= 0),
+  add column if not exists last_active_at timestamptz,
+  add column if not exists avatar_id text not null default 'avatar-arcade',
+  add column if not exists banner_id text not null default 'banner-neon';
 
 alter table public.profiles enable row level security;
 
@@ -17,7 +27,9 @@ create policy "Users can update their own profile"
   using (id = (select auth.uid()))
   with check (id = (select auth.uid()));
 
-grant select, update on public.profiles to authenticated;
+revoke update on public.profiles from public, anon, authenticated;
+grant select on public.profiles to authenticated;
+grant update (display_name) on public.profiles to authenticated;
 
 create or replace function public.create_profile_for_new_user()
 returns trigger
@@ -47,6 +59,196 @@ drop trigger if exists create_profile_after_signup on auth.users;
 create trigger create_profile_after_signup
   after insert on auth.users
   for each row execute procedure public.create_profile_for_new_user();
+
+create or replace function public.profile_level_for_seconds(p_seconds bigint)
+returns integer
+language plpgsql
+immutable
+set search_path = ''
+as $$
+declare
+  v_level integer := 1;
+  v_elapsed bigint := 0;
+  v_minutes integer;
+  v_requirements integer[] := array[4, 4, 6, 7, 8, 8, 10, 11, 12, 12, 13, 14, 15, 15];
+begin
+  if p_seconds is null or p_seconds < 0 then
+    return 1;
+  end if;
+
+  loop
+    if v_level <= array_length(v_requirements, 1) then
+      v_minutes := v_requirements[v_level];
+    else
+      v_minutes := v_level + 1;
+    end if;
+    exit when v_elapsed + v_minutes * 60 > p_seconds;
+    v_elapsed := v_elapsed + v_minutes * 60;
+    v_level := v_level + 1;
+  end loop;
+
+  return v_level;
+end;
+$$;
+
+create or replace function public.record_active_time()
+returns table (active_seconds bigint, level integer)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_active_seconds bigint;
+  v_last_active_at timestamptz;
+  v_now timestamptz := clock_timestamp();
+  v_elapsed bigint;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+
+  select p.active_seconds, p.last_active_at
+    into v_active_seconds, v_last_active_at
+    from public.profiles as p
+    where p.id = v_user_id
+    for update;
+
+  if not found then
+    raise exception 'Profile not found';
+  end if;
+
+  if v_last_active_at is null then
+    update public.profiles
+      set last_active_at = v_now
+      where id = v_user_id;
+  else
+    v_elapsed := floor(extract(epoch from (v_now - v_last_active_at)))::bigint;
+    if v_elapsed >= 55 then
+      v_active_seconds := v_active_seconds + least(v_elapsed, 60::bigint);
+      update public.profiles
+        set active_seconds = v_active_seconds,
+            last_active_at = v_now
+        where id = v_user_id;
+    end if;
+  end if;
+
+  return query
+    select v_active_seconds, public.profile_level_for_seconds(v_active_seconds);
+end;
+$$;
+
+create or replace function public.pause_active_time()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_last_active_at timestamptz;
+  v_elapsed bigint;
+begin
+  if v_user_id is null then
+    return;
+  end if;
+
+  select p.last_active_at
+    into v_last_active_at
+    from public.profiles as p
+    where p.id = v_user_id
+    for update;
+
+  if not found then
+    raise exception 'Profile not found';
+  end if;
+
+  if v_last_active_at is null then
+    return;
+  end if;
+
+  v_elapsed := floor(extract(epoch from (clock_timestamp() - v_last_active_at)))::bigint;
+  update public.profiles
+    set active_seconds = active_seconds + least(greatest(v_elapsed, 0), 60::bigint),
+        last_active_at = null
+    where id = v_user_id;
+end;
+$$;
+
+create or replace function public.set_profile_customization(p_avatar_id text, p_banner_id text)
+returns table (avatar_id text, banner_id text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_active_seconds bigint;
+  v_level integer;
+  v_avatar_level integer;
+  v_banner_level integer;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+
+  select p.active_seconds
+    into v_active_seconds
+    from public.profiles as p
+    where p.id = v_user_id
+    for update;
+
+  if not found then
+    raise exception 'Profile not found';
+  end if;
+
+  v_avatar_level := case p_avatar_id
+    when 'avatar-arcade' then 1
+    when 'avatar-fox' then 2
+    when 'avatar-owl' then 4
+    when 'avatar-bear' then 6
+    when 'avatar-dragon' then 8
+    when 'avatar-robot' then 10
+    else null
+  end;
+  v_banner_level := case p_banner_id
+    when 'banner-neon' then 1
+    when 'banner-sunset' then 3
+    when 'banner-ocean' then 5
+    when 'banner-galaxy' then 7
+    when 'banner-forest' then 9
+    when 'banner-aurora' then 11
+    else null
+  end;
+
+  if v_avatar_level is null or v_banner_level is null then
+    raise exception 'Cosmetic not found';
+  end if;
+
+  v_level := public.profile_level_for_seconds(v_active_seconds);
+  if v_level < v_avatar_level or v_level < v_banner_level then
+    raise exception 'Cosmetic not unlocked';
+  end if;
+
+  update public.profiles as p
+    set avatar_id = p_avatar_id,
+        banner_id = p_banner_id
+    where p.id = v_user_id;
+
+  return query
+    select p.avatar_id, p.banner_id
+    from public.profiles as p
+    where p.id = v_user_id;
+end;
+$$;
+
+revoke all on function public.profile_level_for_seconds(bigint) from public, anon;
+revoke all on function public.record_active_time() from public, anon;
+revoke all on function public.pause_active_time() from public, anon;
+revoke all on function public.set_profile_customization(text, text) from public, anon;
+grant execute on function public.record_active_time() to authenticated;
+grant execute on function public.pause_active_time() to authenticated;
+grant execute on function public.set_profile_customization(text, text) to authenticated;
 
 create table if not exists public.game_sessions (
   id bigint generated always as identity primary key,

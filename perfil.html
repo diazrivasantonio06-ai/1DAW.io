@@ -11,7 +11,7 @@
     .page-intro { padding: clamp(2.5rem, 7vw, 5rem) 0 2rem; }
     .page-intro h1 { font-size: clamp(2rem, 6vw, 3.8rem); }
     .page-intro p { max-width: 58ch; color: var(--muted); }
-    .profile-page { max-width: 900px; padding-bottom: 4rem; }
+    .profile-page { max-width: 980px; padding-bottom: 4rem; }
     .account-panel, .profile-panel { padding: clamp(1.2rem, 4vw, 2rem); }
     .account-panel { max-width: 560px; }
     .account-panel h2, .profile-panel h2 { margin: 0 0 .4rem; font-size: 1.25rem; }
@@ -35,6 +35,26 @@
     .setup-notice p { margin: .4rem 0 0; color: var(--muted); }
     .profile-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
     .profile-heading h2 { margin: 0; }
+    .profile-banner { position: relative; display: flex; min-height: 170px; flex: 1 1 520px; align-items: flex-end; gap: 1rem; overflow: hidden; padding: 1.25rem; border: 1px solid rgb(255 255 255 / 18%); border-radius: 1rem; background: linear-gradient(120deg, #123f54, #162139 55%, #3b1b50); }
+    .profile-banner::after { position: absolute; inset: 0; background: linear-gradient(0deg, rgb(10 10 20 / 58%), transparent 75%); content: ""; pointer-events: none; }
+    .profile-banner > * { z-index: 1; }
+    .profile-banner.banner-neon, .cosmetic-banner-swatch.banner-neon { background: linear-gradient(120deg, #123f54, #162139 55%, #3b1b50); }
+    .profile-banner.banner-sunset, .cosmetic-banner-swatch.banner-sunset { background: linear-gradient(120deg, #8b315c, #e47652 55%, #ffcc72); }
+    .profile-banner.banner-ocean, .cosmetic-banner-swatch.banner-ocean { background: linear-gradient(120deg, #064c72, #188baf 55%, #70e1d1); }
+    .profile-banner.banner-galaxy, .cosmetic-banner-swatch.banner-galaxy { background: linear-gradient(120deg, #24145c, #7748b8 55%, #e14f98); }
+    .profile-banner.banner-forest, .cosmetic-banner-swatch.banner-forest { background: linear-gradient(120deg, #153d2d, #36865b 55%, #c0cb65); }
+    .profile-banner.banner-aurora, .cosmetic-banner-swatch.banner-aurora { background: linear-gradient(120deg, #06434c, #18a89f 55%, #8fd7d5); }
+    .profile-avatar { display: grid; width: 82px; height: 82px; flex: 0 0 82px; place-items: center; border: 3px solid rgb(255 255 255 / 88%); border-radius: 50%; background: #171629; box-shadow: 0 8px 26px rgb(0 0 0 / 35%); font-size: 3.1rem; }
+    .profile-heading-copy { min-width: 0; }
+    .profile-heading-copy h2, .profile-heading-copy p { overflow-wrap: anywhere; text-shadow: 0 2px 8px rgb(0 0 0 / 70%); }
+    .profile-heading-copy p { margin: .25rem 0 0; color: #eeeafa; }
+    .level-card { margin: 1.2rem 0 2rem; padding: 1.1rem 1.2rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--panel-raised); }
+    .level-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .4rem 1rem; }
+    .level-heading strong { color: var(--yellow); font: 1.25rem var(--font-display); }
+    .level-heading span, .level-card p { color: var(--muted); }
+    .level-track { height: 12px; margin-top: .8rem; overflow: hidden; border-radius: 999px; background: var(--bg); }
+    .level-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--aqua), var(--yellow)); transition: width .25s ease; }
+    .level-card > p { margin: .5rem 0 0; font-size: .9rem; }
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; margin: 1.2rem 0; }
     .stat-card, .game-stat { padding: 1rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--panel); }
     .stat-card strong { display: block; color: var(--aqua); font: 1.3rem var(--font-display); }
@@ -42,6 +62,19 @@
     .game-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .8rem; }
     .game-stat h3 { margin: 0 0 .4rem; }
     .game-stat p { margin: .2rem 0; }
+    .cosmetics-section { margin-top: 2rem; }
+    .cosmetics-section > p { color: var(--muted); }
+    .cosmetic-group { margin-top: 1.3rem; }
+    .cosmetic-group h3 { margin: 0 0 .7rem; font-size: 1rem; }
+    .cosmetic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: .7rem; }
+    .cosmetic-option { display: grid; min-height: 78px; grid-template-columns: 52px 1fr; align-items: center; gap: .25rem .75rem; padding: .65rem; border: 1px solid var(--line); border-radius: .85rem; background: var(--panel); color: var(--text); cursor: pointer; text-align: left; }
+    .cosmetic-option:hover:not(:disabled) { border-color: var(--pink); }
+    .cosmetic-option[aria-pressed="true"] { border-color: var(--aqua); box-shadow: inset 0 0 0 1px var(--aqua); }
+    .cosmetic-option:disabled:not([aria-pressed="true"]) { cursor: not-allowed; opacity: .62; }
+    .cosmetic-avatar { display: grid; width: 48px; height: 48px; grid-row: span 2; place-items: center; border-radius: 50%; background: var(--panel-raised); font-size: 2rem; }
+    .cosmetic-banner-swatch { width: 100%; height: 30px; grid-column: 1 / -1; border-radius: .5rem; }
+    .cosmetic-name { font-weight: 700; }
+    .cosmetic-state { color: var(--muted); font-size: .82rem; }
     .history { display: grid; gap: .6rem; padding: 0; list-style: none; }
     .history li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3rem 1rem; padding: .8rem 0; border-bottom: 1px solid var(--line); }
     .history small { color: var(--muted); }
@@ -51,6 +84,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="supabase-config.js"></script>
   <script defer src="account.js"></script>
+  <script defer src="presence.js"></script>
   <script defer src="games.js"></script>
   <script defer src="profile.js"></script>
 </head>
@@ -101,14 +135,27 @@
           <p id="account-status" class="account-status" aria-live="polite"></p>
         </section>
         <section id="profile-panel" class="profile-panel panel" hidden>
+          <p id="profile-status" class="account-status" aria-live="polite"></p>
           <div class="profile-heading">
-            <div>
-              <h2 id="profile-name"></h2>
-              <p id="profile-email" class="profile-email"></p>
+            <div id="profile-banner" class="profile-banner banner-neon">
+              <span id="profile-avatar" class="profile-avatar" aria-hidden="true">🕹️</span>
+              <div class="profile-heading-copy">
+                <h2 id="profile-name"></h2>
+                <p id="profile-email" class="profile-email"></p>
+              </div>
             </div>
             <button id="sign-out" class="btn secondary" type="button">Cerrar sesión</button>
           </div>
-          <p id="profile-status" class="account-status" aria-live="polite"></p>
+          <section class="level-card" aria-label="Nivel de perfil">
+            <div class="level-heading">
+              <strong id="profile-level">Nivel 1</strong>
+              <span id="active-time-label">0 min en la web</span>
+            </div>
+            <div id="level-progress" class="level-track" role="progressbar" aria-label="Progreso al siguiente nivel" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="level-progress-fill" class="level-fill"></div>
+            </div>
+            <p id="level-progress-label">0 min para el nivel 2</p>
+          </section>
           <div class="stats-grid" aria-label="Estadísticas totales">
             <div class="stat-card"><strong id="total-games">0</strong><span>Partidas jugadas</span></div>
             <div class="stat-card"><strong id="total-time">0 min</strong><span>Tiempo de juego</span></div>
@@ -122,6 +169,19 @@
           <section>
             <h2>Partidas recientes</h2>
             <ul id="game-history" class="history"></ul>
+          </section>
+          <section class="cosmetics-section">
+            <h2>Personaliza tu perfil</h2>
+            <p>Consigue avatares y banners subiendo de nivel mientras la web está abierta y visible.</p>
+            <div class="cosmetic-group">
+              <h3>Fotos de perfil</h3>
+              <div id="avatar-options" class="cosmetic-grid"></div>
+            </div>
+            <div class="cosmetic-group">
+              <h3>Banners</h3>
+              <div id="banner-options" class="cosmetic-grid"></div>
+            </div>
+            <p id="cosmetic-status" class="account-status" aria-live="polite"></p>
           </section>
         </section>
       </section>

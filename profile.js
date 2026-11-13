@@ -12,6 +12,27 @@ const submitAuth = document.querySelector("#submit-auth");
 const toggleAuth = document.querySelector("#toggle-auth");
 let creatingAccount = false;
 let profileRequest = 0;
+let currentClient = null;
+let currentProfile = null;
+let savingCosmetic = false;
+
+const LEVEL_MINUTES = [4, 4, 6, 7, 8, 8, 10, 11, 12, 12, 13, 14, 15, 15];
+const AVATARS = [
+  { id: "avatar-arcade", name: "Arcade", icon: "🕹️", level: 1 },
+  { id: "avatar-fox", name: "Zorro", icon: "🦊", level: 2 },
+  { id: "avatar-owl", name: "Búho", icon: "🦉", level: 4 },
+  { id: "avatar-bear", name: "Oso", icon: "🐻", level: 6 },
+  { id: "avatar-dragon", name: "Dragón", icon: "🐉", level: 8 },
+  { id: "avatar-robot", name: "Robot", icon: "🤖", level: 10 }
+];
+const BANNERS = [
+  { id: "banner-neon", name: "Neón", className: "banner-neon", level: 1 },
+  { id: "banner-sunset", name: "Atardecer", className: "banner-sunset", level: 3 },
+  { id: "banner-ocean", name: "Océano", className: "banner-ocean", level: 5 },
+  { id: "banner-galaxy", name: "Galaxia", className: "banner-galaxy", level: 7 },
+  { id: "banner-forest", name: "Bosque", className: "banner-forest", level: 9 },
+  { id: "banner-aurora", name: "Aurora", className: "banner-aurora", level: 11 }
+];
 
 function showStatus(element, message, isError) {
   element.textContent = message;
@@ -36,6 +57,118 @@ function formatDuration(seconds) {
   if (hours) return `${hours} h ${minutes} min`;
   if (totalMinutes) return `${totalMinutes} min`;
   return `${Math.floor(Number(seconds || 0))} s`;
+}
+
+function minutesForNextLevel(level) {
+  return level <= LEVEL_MINUTES.length ? LEVEL_MINUTES[level - 1] : level + 1;
+}
+
+function getLevelProgress(activeSeconds) {
+  const totalSeconds = Math.max(0, Number(activeSeconds) || 0);
+  let level = 1;
+  let levelStart = 0;
+  let nextLevelAt = minutesForNextLevel(level) * 60;
+  while (totalSeconds >= nextLevelAt) {
+    level += 1;
+    levelStart = nextLevelAt;
+    nextLevelAt += minutesForNextLevel(level) * 60;
+  }
+  return { level, levelStart, nextLevelAt, totalSeconds };
+}
+
+function renderLevelProgress(activeSeconds) {
+  const progress = getLevelProgress(activeSeconds);
+  const duration = progress.nextLevelAt - progress.levelStart;
+  const percentage = Math.min(100, ((progress.totalSeconds - progress.levelStart) / duration) * 100);
+  document.querySelector("#profile-level").textContent = `Nivel ${progress.level}`;
+  document.querySelector("#active-time-label").textContent = `${formatDuration(progress.totalSeconds)} en la web`;
+  document.querySelector("#level-progress-fill").style.width = `${percentage}%`;
+  document.querySelector("#level-progress").setAttribute("aria-valuenow", String(Math.round(percentage)));
+  document.querySelector("#level-progress-label").textContent =
+    `${formatDuration(progress.nextLevelAt - progress.totalSeconds)} para el nivel ${progress.level + 1}`;
+  return progress.level;
+}
+
+function renderCosmeticOptions(profile, level) {
+  const avatarContainer = document.querySelector("#avatar-options");
+  const bannerContainer = document.querySelector("#banner-options");
+  avatarContainer.replaceChildren();
+  bannerContainer.replaceChildren();
+
+  function makeOption(item, kind, isSelected) {
+    const isUnlocked = level >= item.level;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "cosmetic-option";
+    button.disabled = !isUnlocked || savingCosmetic;
+    button.setAttribute("aria-pressed", String(isSelected));
+    button.setAttribute("aria-label", `${item.name}, ${isUnlocked ? "desbloqueado" : `se desbloquea en el nivel ${item.level}`}`);
+
+    const preview = document.createElement("span");
+    if (kind === "avatar") {
+      preview.className = "cosmetic-avatar";
+      preview.textContent = item.icon;
+    } else {
+      preview.className = `cosmetic-banner-swatch ${item.className}`;
+      preview.setAttribute("aria-hidden", "true");
+    }
+
+    const name = document.createElement("span");
+    name.className = "cosmetic-name";
+    name.textContent = item.name;
+    const state = document.createElement("span");
+    state.className = "cosmetic-state";
+    state.textContent = isSelected ? "Equipado" : isUnlocked ? "Desbloqueado" : `Nivel ${item.level}`;
+    button.append(preview, name, state);
+    if (isUnlocked && !isSelected) {
+      button.addEventListener("click", () => { void saveCosmetic(kind, item.id); });
+    }
+    return button;
+  }
+
+  AVATARS.forEach((avatar) => {
+    avatarContainer.append(makeOption(avatar, "avatar", avatar.id === profile.avatar_id));
+  });
+  BANNERS.forEach((banner) => {
+    bannerContainer.append(makeOption(banner, "banner", banner.id === profile.banner_id));
+  });
+}
+
+function renderProfileAppearance(profile) {
+  const level = renderLevelProgress(profile.active_seconds);
+  const avatar = AVATARS.find((item) => item.id === profile.avatar_id) || AVATARS[0];
+  const banner = BANNERS.find((item) => item.id === profile.banner_id) || BANNERS[0];
+  document.querySelector("#profile-avatar").textContent = avatar.icon;
+  document.querySelector("#profile-banner").className = `profile-banner ${banner.className}`;
+  renderCosmeticOptions(profile, level);
+}
+
+async function saveCosmetic(kind, id) {
+  if (!currentProfile || !currentClient || savingCosmetic) return;
+  const avatarId = kind === "avatar" ? id : currentProfile.avatar_id;
+  const bannerId = kind === "banner" ? id : currentProfile.banner_id;
+  savingCosmetic = true;
+  renderCosmeticOptions(currentProfile, getLevelProgress(currentProfile.active_seconds).level);
+  showStatus(document.querySelector("#cosmetic-status"), "Guardando personalización…", false);
+
+  try {
+    const { data, error } = await currentClient.rpc("set_profile_customization", {
+      p_avatar_id: avatarId,
+      p_banner_id: bannerId
+    });
+    if (error) throw error;
+    const saved = Array.isArray(data) ? data[0] : data;
+    if (!saved) throw new Error("Supabase no devolvió la personalización guardada.");
+    currentProfile.avatar_id = saved.avatar_id;
+    currentProfile.banner_id = saved.banner_id;
+    renderProfileAppearance(currentProfile);
+    showStatus(document.querySelector("#cosmetic-status"), "Personalización guardada.", false);
+  } catch (error) {
+    showStatus(document.querySelector("#cosmetic-status"), `No se pudo guardar: ${error.message}`, true);
+  } finally {
+    savingCosmetic = false;
+    renderCosmeticOptions(currentProfile, getLevelProgress(currentProfile.active_seconds).level);
+  }
 }
 
 function gameTitle(gameId) {
@@ -136,6 +269,7 @@ function renderHistory(sessions) {
 
 async function loadProfile(client, user) {
   const request = ++profileRequest;
+  currentProfile = null;
   profilePanel.hidden = false;
   authPanel.hidden = true;
   setupNotice.hidden = true;
@@ -144,7 +278,7 @@ async function loadProfile(client, user) {
   showStatus(profileStatus, "", false);
 
   const [profileResult, statsResult, sessionsResult] = await Promise.all([
-    client.from("profiles").select("display_name").eq("id", user.id).single(),
+    client.from("profiles").select("display_name,active_seconds,avatar_id,banner_id").eq("id", user.id).single(),
     client.rpc("get_my_game_stats"),
     client.from("game_sessions")
       .select("game_id,duration_seconds,kills,score,won,placement,round_reached,created_at")
@@ -169,11 +303,13 @@ async function loadProfile(client, user) {
     wins: total.wins + Number(item.wins || 0)
   }), { games: 0, seconds: 0, kills: 0, wins: 0 });
 
-  document.querySelector("#profile-name").textContent = profileResult.data.display_name;
+  currentProfile = profileResult.data;
+  document.querySelector("#profile-name").textContent = currentProfile.display_name;
   document.querySelector("#total-games").textContent = String(totals.games);
   document.querySelector("#total-time").textContent = formatDuration(totals.seconds);
   document.querySelector("#total-kills").textContent = String(totals.kills);
   document.querySelector("#total-wins").textContent = String(totals.wins);
+  renderProfileAppearance(currentProfile);
   renderGameStats(stats);
   renderHistory(sessions);
 }
@@ -185,6 +321,7 @@ function renderSession(client, session) {
     });
   } else {
     profileRequest += 1;
+    currentProfile = null;
     profilePanel.hidden = true;
     authPanel.hidden = false;
     setAuthMode(false);
@@ -205,6 +342,7 @@ async function initialize() {
     return;
   }
 
+  currentClient = client;
   setAuthMode(false);
   authPanel.hidden = false;
   client.auth.onAuthStateChange((_event, session) => {
@@ -259,12 +397,28 @@ authForm.addEventListener("submit", async (event) => {
 });
 
 toggleAuth.addEventListener("click", () => setAuthMode(!creatingAccount));
+window.addEventListener("arcade:progress", (event) => {
+  if (!currentProfile) return;
+  currentProfile.active_seconds = event.detail.activeSeconds;
+  renderProfileAppearance(currentProfile);
+});
+window.addEventListener("arcade:progress-error", (event) => {
+  if (!profilePanel.hidden) {
+    showStatus(profileStatus, `No se pudo actualizar el progreso: ${event.detail.message}`, true);
+  }
+});
+
 document.querySelector("#sign-out").addEventListener("click", async () => {
   const client = window.ARCADE_ACCOUNT.getClient();
   if (!client) return;
   try {
+    const { error: pauseError } = await client.rpc("pause_active_time");
+    if (pauseError) console.error("No se pudo pausar el tiempo de perfil:", pauseError);
     const { error } = await client.auth.signOut();
     if (error) throw error;
+    if (pauseError) {
+      showStatus(authStatus, `Sesión cerrada, pero no se pudo pausar el tiempo: ${pauseError.message}`, true);
+    }
   } catch (error) {
     showStatus(profileStatus, `No se pudo cerrar sesión: ${error.message}`, true);
   }
