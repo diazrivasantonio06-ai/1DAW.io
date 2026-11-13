@@ -1,5 +1,8 @@
 // Actualiza los juegos reemplazando el archivo indicado en `src` sin cambiar su ruta.
 window.GAMES = [
-  { id:"claude-of-duty", title:"Claude of Duty", desc:"Shooter 3D en primera persona contra zombis. Versión Alpha 0.5.", emoji:"🧟", color:"#2f4a2a", tag:"Alpha 0.5", cover:"Juegos/claude_of_duty.png", src:"Juegos/Claude%20of%20Duty.html" },
-  { id:"Claude-nite", title:"Claude-Nite", desc:"Battle royale: sé el último en pie, consigue armas y construye para sobrevivir.", emoji:"🏝️", color:"#168a8a", tag:"Pre-Alpha 3.5", cover:"Juegos/claude-nite.png", src:"Juegos/Claude-nite%20Pre-Alpha%203.5.html" }
+  { id:"claude-of-duty", title:"Claude of Duty", desc:"Shooter 3D en primera persona contra zombis. Versión Alpha 0.5.1.", emoji:"🧟", color:"#2f4a2a", tag:" Alpha 0.5.1", cover:"Juegos/claude_of_duty.png", src:"Juegos/Claude%20of%20Duty.html" },
+  { id:"Claude-nite", title:"Claude-Nite", desc:"Battle royale: sé el último en pie, consigue armas y construye para sobrevivir.", emoji:"🏝️", color:"#168a8a", tag:"Pre-Alpha 3.5", cover:"Juegos/claude-nite.png", src:"Juegos/Claude-nite%20Pre-Alpha%203.5.html" },
+  { id:"patata-espacial", title:"Patata Espacial", desc:"Tu nave se estrelló en un planeta hostil. ¿Podrás sobrevivir?", emoji:"🥔", color:"#754c24", tag:"Nuevo", src:"Juegos/patata-espacial-v2.html" },
+  { id:"bloques", title:"Bloques", desc:"Juego de bloques tipo Tetris: completa líneas y consigue la mejor puntuación.", emoji:"🧱", color:"#365b8c", tag:"Versión final", src:"Juegos/Bloques%20%E2%80%93%20juego%20tipo%20Tetris.html" },
+  { id:"500-cofres-animados", title:"500 cofres animados", desc:"Abre cofres animados y descubre objetos de una tienda pirata ficticia.", emoji:"🎁", color:"#705124", tag:"Versión final", src:"Juegos/500%20cofres%20animados.html" }
 ];

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>500 cofres animados</title>
+<style>
+:root{--bg:#efeaff;--bar:#efeaffee;--tx:#1b1740;--mu:#5d5a80;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e0b26;--bar:#0e0b26ee;--tx:#f1efff;--mu:#a9a5d1}}
+:root[data-theme="dark"]{--bg:#0e0b26;--bar:#0e0b26ee;--tx:#f1efff;--mu:#a9a5d1}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;padding:0 8px 32px;overflow-x:hidden}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bar);padding:10px 8px;border-bottom:1px solid #8884}
+h1{margin:0 0 2px;font-size:1.3rem}
+p{margin:0;color:var(--mu);font-size:.85rem}
+button{font:inherit;font-weight:700;cursor:pointer;border:0;border-radius:12px;padding:9px 18px;background:#6c3df4;color:#fff;margin-top:8px}
+button:active{transform:scale(.96)}
+button:disabled{opacity:.6}
+.row{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:4px 2px;max-width:1100px;margin:10px auto 0}
+.card{display:flex;flex-direction:column;align-items:center}
+.stage{position:relative;width:88px;height:88px;margin-top:34px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.stage svg{width:100%;height:100%;overflow:visible}
+.chest{transform-origin:50% 90%}
+.shake .chest{animation:shake .4s}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}75%{transform:rotate(-4deg)}}
+.lid{transform-origin:62px 118px;transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
+.open .lid{transform:rotate(-62deg)}
+.glow,.rays{opacity:0;transition:opacity .4s}
+.open .glow{opacity:1}
+.open .rays{opacity:.8}
+.loot{position:absolute;left:50%;top:40%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;opacity:0;transform:translateY(20px) scale(.2);border:2px solid;background:#ffffff30}
+.open .loot{opacity:1;transform:translateY(-52px) scale(1.1) rotate(360deg);transition:transform .7s cubic-bezier(.2,1.4,.4,1),opacity .3s}
+.spark{position:absolute;width:5px;height:5px;border-radius:50%;pointer-events:none;left:50%;top:44%;animation:fly .8s ease-out forwards}
+@keyframes fly{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+.name{font-weight:800;font-size:.62rem;min-height:1.2em;margin-top:2px;line-height:1.1}
+.name.p{font-size:.7rem}
+.fx{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:#000b;padding:20px;cursor:pointer}
+.fx.on{display:flex;animation:fadein .3s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.fxc{background:linear-gradient(135deg,#ff3d6e,#6c3df4);color:#fff;border-radius:22px;padding:28px 24px;max-width:360px;box-shadow:0 0 70px #ff3d6e;animation:pop .7s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.2) rotate(-12deg)}to{transform:none}}
+.fxc .em{font-size:4.2rem;animation:bounce 1s ease-in-out infinite}
+@keyframes bounce{50%{transform:translateY(-12px) rotate(8deg)}}
+.fxc h2{margin:6px 0;font-size:1.8rem;animation:glowt 1s ease-in-out infinite alternate}
+@keyframes glowt{from{text-shadow:0 0 4px #fff}to{text-shadow:0 0 22px #ffe680}}
+.fxc p{color:#fff;font-size:1rem;margin:4px 0}
+.fxc small{opacity:.8}
+.conf{position:fixed;top:-20px;width:10px;height:14px;z-index:21;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+.fxc button{background:#ffe680;color:#2a2100;margin:10px 0 8px;font-size:1.05rem}
+#shopb{display:none;margin-left:8px;background:#ff3d6e}
+.shop{position:fixed;inset:0;z-index:22;display:none;align-items:center;justify-content:center;background:#000c;padding:12px}
+.shop.on{display:flex;animation:fadein .3s}
+.sp2{background:var(--bg);color:var(--tx);border-radius:18px;width:min(96vw,720px);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 50px #ff3d6e}
+.sh{padding:14px 14px 8px;border-bottom:1px solid #8884}
+.sh h2{margin:0;font-size:1.3rem}
+.stabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.stabs button{margin:0;padding:6px 12px;background:#8883;color:var(--tx);font-size:.85rem}
+.stabs button.on{background:#6c3df4;color:#fff}
+.sgrid{overflow-y:auto;padding:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.si{border:1px solid #8886;border-radius:12px;padding:10px 6px;background:#8881}
+.se{font-size:2.4rem}
+.sn{font-weight:700;font-size:.85rem;min-height:2.2em}
+.sprice{font-size:.7rem;color:#ff3d6e;font-weight:800}
+.si button{margin-top:6px;padding:6px 10px;font-size:.8rem;width:100%}
+.si.got{border-color:#4caf50}
+.si.got button{background:#4caf50}
+.sf{padding:10px 14px;border-top:1px solid #8884}
+.sf button{margin:4px 4px 0}
+.sf .cl{background:#8885;color:var(--tx)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<radialGradient id="g" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffe680"/><stop offset="1" stop-color="#ffcc0000"/></radialGradient>
+<linearGradient id="w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8672b"/><stop offset="1" stop-color="#6b3b12"/></linearGradient>
+<linearGradient id="m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd84d"/><stop offset="1" stop-color="#c78f00"/></linearGradient>
+</defs></svg>
+<div class="bar">
+<h1>🎁 500 cofres animados</h1>
+<p>Toca un cofre para abrirlo · Token de la tienda pirata: 1 entre 5000</p>
+<button id="all">Abrir todos</button><button id="shopb">🏪 Tienda pirata</button>
+<p id="cnt" style="margin-top:6px"></p>
+</div>
+<div class="row" id="row"></div>
+<div class="fx" id="fx"><div class="fxc"><div class="em">🏴‍☠️</div><h2>¡FELICIDADES!</h2><p>Has conseguido el <b>token de la tienda pirata</b></p><p id="fxn"></p><button id="claim">🎁 Reclamar tienda gratis</button><br><small>Toca fuera para cerrar</small></div></div>
+<div class="shop" id="shop"><div class="sp2"><div class="sh"><h2>🏴‍☠️ Tienda pirata · todo gratis</h2><p id="scount"></p><div class="stabs" id="stabs"></div></div><div class="sgrid" id="sgrid"></div><div class="sf"><button id="claimall">Reclamar todo gratis</button><button class="cl" id="shopx">Cerrar</button><p style="margin-top:6px">Tienda simulada: los objetos son ficticios y no se añaden a ninguna cuenta de Fortnite.</p></div></div></div>
+<script>
+var N=500;
+var SVG='<svg viewBox="0 0 400 400" aria-label="Cofre"><g class="rays" stroke="#ffe680" stroke-width="12" stroke-linecap="round"><line x1="200" y1="190" x2="200" y2="20"/><line x1="200" y1="190" x2="320" y2="70"/><line x1="200" y1="190" x2="380" y2="190"/><line x1="200" y1="190" x2="80" y2="70"/><line x1="200" y1="190" x2="20" y2="190"/></g><ellipse cx="200" cy="350" rx="130" ry="18" fill="#0005"/><circle class="glow" cx="200" cy="210" r="150" fill="url(#g)"/><g class="chest"><rect x="62" y="190" width="276" height="150" rx="14" fill="url(#w)" stroke="#3d1f08" stroke-width="7"/><rect x="100" y="190" width="22" height="150" fill="url(#m)"/><rect x="278" y="190" width="22" height="150" fill="url(#m)"/><rect x="62" y="318" width="276" height="22" rx="8" fill="url(#m)"/><g class="lid"><path d="M62 190 V150 Q62 90 200 90 Q338 90 338 150 V190 Z" fill="url(#w)" stroke="#3d1f08" stroke-width="7"/><rect x="100" y="95" width="22" height="95" fill="url(#m)"/><rect x="278" y="95" width="22" height="95" fill="url(#m)"/><rect x="62" y="172" width="276" height="20" rx="6" fill="url(#m)"/></g><rect x="178" y="168" width="44" height="46" rx="8" fill="url(#m)" stroke="#3d1f08" stroke-width="6"/><circle cx="200" cy="188" r="7" fill="#3d1f08"/></g></svg>';
+var L=[
+{n:"Común",c:"#b0b0b0",i:["🔫","🩹","📦"],w:40},
+{n:"Poco común",c:"#4caf50",i:["🪓","🛡️","💥"],w:28},
+{n:"Rara",c:"#3a9bff",i:["🎯","⚡","🧪"],w:18},
+{n:"Épica",c:"#b24dff",i:["🚀","💣","🔮"],w:9},
+{n:"Legendaria",c:"#ffb300",i:["👑","🔥","⭐"],w:5}
+];
+var P={n:"¡TOKEN PIRATA!",c:"#ff3d6e",i:["🏴‍☠️"]};
+var tilt=["none","hue-rotate(170deg)","hue-rotate(290deg)"];
+var total=0,pir=0,openN=0,busy=false;
+var btn=document.getElementById("all"),cnt=document.getElementById("cnt");
+function pick(){if(Math.random()<1/5000)return P;var t=0;L.forEach(function(x){t+=x.w});var r=Math.random()*t;for(var k=0;k<L.length;k++){r-=L[k].w;if(r<=0)return L[k]}return L[0]}
+var fx=document.getElementById("fx"),fxT;
+function closeFx(){fx.classList.remove("on")}
+fx.onclick=function(e){if(e.target===fx)closeFx()};
+var SH={
+'Skins':[['🏴‍☠️','Capitán Calavera'],['🦜','Corsario Loro'],['🧜','Sirena Pirata'],['🤖','Robot de Abordaje']],
+'Picos':[['⛏️','Pico Dorado'],['🗡️','Hacha Sable'],['⚓','Ancla Pesada'],['🔱','Tridente Marino']],
+'Bailes':[['💃','Baile del Cofre'],['🕺','Danza Pirata'],['🤸','Voltereta Marina'],['🎻','Vals del Ron']],
+'Zapatillas':[['👟','Zapas Corsario'],['🥾','Botas de Tormenta'],['👢','Botas Doradas'],['🩴','Chanclas de Playa']],
+'Mascotas':[['🦜','Loro Parlanchín'],['🐒','Mono Ladrón'],['🐙','Pulpo Amigo'],['🐈‍⬛','Gato del Barco']]
+};
+var cl={},stab='Skins',shop=document.getElementById('shop');
+function drawShop(){
+ var tb=document.getElementById('stabs');tb.innerHTML='';
+ Object.keys(SH).forEach(function(k){var b=document.createElement('button');b.textContent=k;b.className=k===stab?'on':'';b.onclick=function(){stab=k;drawShop()};tb.appendChild(b)});
+ var g=document.getElementById('sgrid');g.innerHTML='';
+ SH[stab].forEach(function(it,i){
+  var key=stab+i,d=document.createElement('div');d.className='si'+(cl[key]?' got':'');
+  var e=document.createElement('div');e.className='se';e.textContent=it[0];
+  var n=document.createElement('div');n.className='sn';n.textContent=it[1];
+  var p=document.createElement('div');p.className='sprice';p.textContent=cl[key]?'EN TU TAQUILLA':'GRATIS';
+  var b=document.createElement('button');b.textContent=cl[key]?'Reclamado ✓':'Reclamar gratis';
+  b.onclick=function(){cl[key]=true;drawShop()};
+  d.appendChild(e);d.appendChild(n);d.appendChild(p);d.appendChild(b);g.appendChild(d)});
+ var t=0,c=0;Object.keys(SH).forEach(function(k){SH[k].forEach(function(x,i){t++;if(cl[k+i])c++})});
+ document.getElementById('scount').textContent='Reclamados: '+c+' de '+t;
+}
+function openShop(){closeFx();drawShop();shop.classList.add('on')}
+document.getElementById('claim').onclick=openShop;
+document.getElementById('shopb').onclick=openShop;
+document.getElementById('shopx').onclick=function(){shop.classList.remove('on')};
+document.getElementById('claimall').onclick=function(){Object.keys(SH).forEach(function(k){SH[k].forEach(function(x,i){cl[k+i]=true})});drawShop()};
+function congrats(){
+ fx.classList.add("on");
+ document.getElementById("fxn").textContent="Tokens piratas: "+pir;
+ var cols=["#ff3d6e","#ffe680","#6c3df4","#3a9bff","#4caf50","#fff"];
+ for(var q=0;q<80;q++){var e=document.createElement("div");e.className="conf";
+  e.style.left=Math.random()*100+"vw";e.style.background=cols[q%cols.length];
+  e.style.animationDuration=(2.5+Math.random()*2)+"s";e.style.animationDelay=(Math.random()*1.2)+"s";
+  e.addEventListener("animationend",function(){this.remove()});document.body.appendChild(e)}
+ clearTimeout(fxT);fxT=setTimeout(closeFx,7000);
+}
+function ui(){
+ btn.textContent=openN>=N?"Cerrar todos":"Abrir todos";
+ document.getElementById("shopb").style.display=pir?"inline-block":"none";
+ cnt.textContent="Abiertos ahora: "+openN+"/"+N+" · Aperturas: "+total+" · Tokens piratas: "+pir;
+}
+function mk(idx){
+ var card=document.createElement("div");card.className="card";
+ card.innerHTML='<div class="stage">'+SVG+'<div class="loot"></div></div><div class="name"></div>';
+ var st=card.firstChild,lt=st.querySelector(".loot"),nm=card.lastChild,opened=false;
+ st.querySelector("svg").style.filter=tilt[idx%3];
+ function sparks(c,n){
+  for(var k=0;k<n;k++){var s=document.createElement("div");s.className="spark";
+   var a=Math.random()*6.283,d=25+Math.random()*40;
+   s.style.background=Math.random()<.5?c:"#ffe680";
+   s.style.setProperty("--dx",Math.cos(a)*d+"px");s.style.setProperty("--dy",Math.sin(a)*d+"px");
+   s.addEventListener("animationend",function(){this.remove()});st.appendChild(s)}
+ }
+ function doOpen(){
+  var r=pick(),ic=r.i[Math.floor(Math.random()*r.i.length)];
+  lt.textContent=ic;lt.style.borderColor=r.c;lt.style.boxShadow="0 0 12px "+r.c;
+  nm.textContent=r.n;nm.style.color=r.c;nm.className=r===P?"name p":"name";
+  st.classList.add("open");opened=true;openN++;total++;
+  if(r===P){pir++;congrats();sparks(r.c,16);setTimeout(function(){sparks(r.c,16)},250)}else sparks(r.c,5);
+  ui();
+ }
+ card.doClose=function(){if(!opened)return;st.classList.remove("open");nm.textContent="";opened=false;openN--};
+ card.doOpen=function(fast){
+  if(opened)return;
+  if(fast){doOpen();return}
+  st.classList.add("shake");
+  setTimeout(function(){st.classList.remove("shake");if(!opened)doOpen()},380);
+ };
+ st.onclick=function(){if(busy)return;if(opened){card.doClose();ui()}else card.doOpen(false)};
+ return card;
+}
+var row=document.getElementById("row"),cards=[],fr=document.createDocumentFragment();
+for(var i=0;i<N;i++){var c=mk(i);cards.push(c);fr.appendChild(c)}
+row.appendChild(fr);
+btn.onclick=function(){
+ if(busy)return;busy=true;btn.disabled=true;
+ var closing=openN>=N;
+ cards.forEach(function(c,i){setTimeout(function(){closing?c.doClose():c.doOpen(true);if(closing)ui()},i*5)});
+ setTimeout(function(){busy=false;btn.disabled=false;ui()},N*5+100);
+};
+ui();
+</script>
+</body>
+</html>

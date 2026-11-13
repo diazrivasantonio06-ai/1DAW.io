@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bloques</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#ece8df; --panel:#f7f4ed; --ink:#23201b; --muted:#7a7468;
+  --board:#fbf9f4; --grid:#e6e1d5; --btn:#23201b; --btnink:#f7f4ed; --veil:rgba(247,244,237,.88);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#16181d; --panel:#20232b; --ink:#eceae4; --muted:#8e94a3;
+    --board:#1a1d24; --grid:#252932; --btn:#eceae4; --btnink:#16181d; --veil:rgba(26,29,36,.88);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16181d; --panel:#20232b; --ink:#eceae4; --muted:#8e94a3;
+  --board:#1a1d24; --grid:#252932; --btn:#eceae4; --btnink:#16181d; --veil:rgba(26,29,36,.88);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:12px;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.game{display:flex;gap:16px;align-items:flex-start;justify-content:center;flex-wrap:wrap;max-width:560px}
+.stage{position:relative;border-radius:10px;overflow:hidden;box-shadow:0 0 0 3px var(--ink)}
+#board{display:block;width:min(300px,62vw,calc(56vh*.5));height:auto;aspect-ratio:1/2;background:var(--board)}
+.veil{position:absolute;inset:0;background:var(--veil);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px}
+.veil h1{margin:0;font-size:2.2rem;font-weight:800;letter-spacing:-.02em}
+.veil p{margin:0;color:var(--muted);font-size:.9rem;line-height:1.4}
+.veil[hidden]{display:none}
+button{font:inherit;cursor:pointer;border:0}
+.main{background:var(--btn);color:var(--btnink);padding:10px 22px;border-radius:999px;font-weight:800;font-size:1rem}
+.main:focus-visible,.pad button:focus-visible{outline:3px solid #4f6df5;outline-offset:2px}
+.side{display:flex;flex-direction:column;gap:10px;width:132px}
+.card{background:var(--panel);border-radius:10px;padding:10px 12px}
+.card h2{margin:0 0 4px;font-size:.8rem;font-weight:500;color:var(--muted)}
+.card canvas{display:block;margin:0 auto;width:96px;height:96px}
+.stat{display:flex;justify-content:space-between;align-items:baseline;font-size:.85rem;color:var(--muted)}
+.stat b{font-size:1.25rem;color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:300px;margin-top:4px}
+.pad button{background:var(--panel);color:var(--ink);border-radius:12px;padding:14px 0;font-size:1.2rem;font-weight:800;box-shadow:0 0 0 2px var(--grid)}
+.pad button:active{background:var(--ink);color:var(--bg)}
+.help{font-size:.75rem;color:var(--muted);line-height:1.5;margin:0}
+@media (hover:hover) and (pointer:fine){.pad{display:none}}
+@media (max-width:520px){.side{flex-direction:row;flex-wrap:wrap;width:min(300px,62vw)}.side .card{flex:1 1 40%}.card canvas{width:64px;height:64px}.help{display:none}}
+</style>
+</head>
+<body>
+<div class="game">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+    <div class="stage">
+      <canvas id="board" width="300" height="600" aria-label="Tablero de juego"></canvas>
+      <div class="veil" id="veil">
+        <h1 id="vt">Bloques</h1>
+        <p id="vp">Completa líneas para sumar puntos.<br>Flechas para mover, ↑ para girar, espacio para soltar.</p>
+        <button class="main" id="go">Jugar</button>
+      </div>
+    </div>
+    <div class="pad" id="pad">
+      <button data-a="hold" aria-label="Guardar">Guardar</button>
+      <button data-a="rot" aria-label="Girar">Girar</button>
+      <button data-a="drop" aria-label="Soltar">Soltar</button>
+      <button data-a="left" data-rep aria-label="Izquierda">◀</button>
+      <button data-a="down" data-rep aria-label="Bajar">▼</button>
+      <button data-a="right" data-rep aria-label="Derecha">▶</button>
+    </div>
+  </div>
+  <div class="side">
+    <div class="card"><h2>Siguiente</h2><canvas id="next" width="96" height="96"></canvas></div>
+    <div class="card"><h2>Guardada</h2><canvas id="hold" width="96" height="96"></canvas></div>
+    <div class="card">
+      <div class="stat">Puntos <b id="sc">0</b></div>
+      <div class="stat">Líneas <b id="ln">0</b></div>
+      <div class="stat">Nivel <b id="lv">1</b></div>
+      <div class="stat">Récord <b id="hi">0</b></div>
+    </div>
+    <p class="help">← → mover · ↑ girar · ↓ bajar<br>Espacio soltar · C guardar · P pausa</p>
+  </div>
+</div>
+<script>
+(function(){
+const C=10,R=20,S=30;
+const COLORS={I:"#4cc9f0",O:"#f9c74f",T:"#b565d9",S:"#6fcf5a",Z:"#f25c54",J:"#4f6df5",L:"#f8961e"};
+const SHAPES={
+ I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+ O:[[1,1],[1,1]],
+ T:[[0,1,0],[1,1,1],[0,0,0]],
+ S:[[0,1,1],[1,1,0],[0,0,0]],
+ Z:[[1,1,0],[0,1,1],[0,0,0]],
+ J:[[1,0,0],[1,1,1],[0,0,0]],
+ L:[[0,0,1],[1,1,1],[0,0,0]]
+};
+const $=id=>document.getElementById(id);
+const cv=$("board"),ctx=cv.getContext("2d");
+const nx=$("next").getContext("2d"),hd=$("hold").getContext("2d");
+const veil=$("veil");
+let grid,cur,nextK,holdK,canHold,bag,score,lines,level,best=0,state="idle",acc=0,last=0;
+
+try{best=parseInt(localStorage.getItem("bloques-best"),10)||0}catch(e){}
+$("hi").textContent=best;
+
+const cw=m=>m[0].map((_,i)=>m.map(r=>r[i]).reverse());
+const ccw=m=>m[0].map((_,i)=>m.map(r=>r[r.length-1-i]));
+function refill(){const k=Object.keys(SHAPES);for(let i=k.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[k[i],k[j]]=[k[j],k[i]]}return k}
+function take(){if(!bag.length)bag=refill();return bag.pop()}
+function spawn(k){
+  const m=SHAPES[k].map(r=>r.slice());
+  cur={k,m,x:Math.floor((C-m[0].length)/2),y:0};
+  if(hit(cur.m,cur.x,cur.y))over();
+}
+function hit(m,x,y){
+  for(let r=0;r<m.length;r++)for(let c=0;c<m[r].length;c++){
+    if(!m[r][c])continue;
+    const gx=x+c,gy=y+r;
+    if(gx<0||gx>=C||gy>=R)return true;
+    if(gy>=0&&grid[gy][gx])return true;
+  }
+  return false;
+}
+function move(dx){if(state!=="play")return;if(!hit(cur.m,cur.x+dx,cur.y))cur.x+=dx}
+function rotate(dir){
+  if(state!=="play"||cur.k==="O")return;
+  const m=dir>0?cw(cur.m):ccw(cur.m);
+  for(const k of [0,-1,1,-2,2]){
+    if(!hit(m,cur.x+k,cur.y)){cur.m=m;cur.x+=k;return}
+    if(!hit(m,cur.x+k,cur.y-1)){cur.m=m;cur.x+=k;cur.y-=1;return}
+  }
+}
+function soft(){
+  if(state!=="play")return;
+  if(!hit(cur.m,cur.x,cur.y+1)){cur.y++;score+=1;ui()}else lock();
+  acc=0;
+}
+function hard(){
+  if(state!=="play")return;
+  let n=0;while(!hit(cur.m,cur.x,cur.y+1)){cur.y++;n++}
+  score+=n*2;lock();
+}
+function hold(){
+  if(state!=="play"||!canHold)return;
+  const k=cur.k;
+  if(holdK){spawn(holdK)}else{spawn(nextK);nextK=take()}
+  holdK=k;canHold=false;drawSide();
+}
+function lock(){
+  cur.m.forEach((row,r)=>row.forEach((v,c)=>{
+    if(v){const gy=cur.y+r;if(gy>=0)grid[gy][cur.x+c]=cur.k}
+  }));
+  let n=0;
+  for(let r=R-1;r>=0;r--){
+    if(grid[r].every(Boolean)){grid.splice(r,1);grid.unshift(Array(C).fill(0));n++;r++}
+  }
+  if(n){
+    score+=[0,100,300,500,800][n]*level;
+    lines+=n;level=1+Math.floor(lines/10);
+  }
+  canHold=true;
+  spawn(nextK);nextK=take();
+  drawSide();ui();
+}
+function over(){
+  state="over";
+  if(score>best){best=score;try{localStorage.setItem("bloques-best",String(best))}catch(e){}}
+  $("vt").textContent="Fin de la partida";
+  $("vp").innerHTML="Hiciste <b>"+score+"</b> puntos y "+lines+" líneas.";
+  $("go").textContent="Jugar otra vez";
+  veil.hidden=false;ui();
+}
+function ui(){
+  $("sc").textContent=score;$("ln").textContent=lines;$("lv").textContent=level;
+  $("hi").textContent=Math.max(best,score);
+}
+function start(){
+  grid=Array.from({length:R},()=>Array(C).fill(0));
+  bag=[];score=0;lines=0;level=1;holdK=null;canHold=true;acc=0;
+  nextK=take();spawn(take());
+  state="play";veil.hidden=true;last=performance.now();
+  ui();drawSide();
+}
+function pause(){
+  if(state==="play"){state="pause";$("vt").textContent="Pausa";$("vp").textContent="Pulsa P o el botón para seguir.";$("go").textContent="Continuar";veil.hidden=false}
+  else if(state==="pause"){state="play";veil.hidden=true;last=performance.now()}
+}
+$("go").onclick=()=>{state==="pause"?pause():start()};
+
+function cell(g,x,y,s,col,a){
+  g.globalAlpha=a||1;
+  g.fillStyle=col;g.fillRect(x,y,s,s);
+  g.fillStyle="rgba(255,255,255,.35)";g.fillRect(x,y,s,s*.18);g.fillRect(x,y,s*.18,s);
+  g.fillStyle="rgba(0,0,0,.22)";g.fillRect(x,y+s*.82,s,s*.18);g.fillRect(x+s*.82,y,s*.18,s);
+  g.globalAlpha=1;
+}
+function draw(){
+  const st=getComputedStyle(document.documentElement);
+  ctx.fillStyle=st.getPropertyValue("--board");ctx.fillRect(0,0,C*S,R*S);
+  ctx.strokeStyle=st.getPropertyValue("--grid");ctx.lineWidth=1;ctx.beginPath();
+  for(let i=1;i<C;i++){ctx.moveTo(i*S+.5,0);ctx.lineTo(i*S+.5,R*S)}
+  for(let i=1;i<R;i++){ctx.moveTo(0,i*S+.5);ctx.lineTo(C*S,i*S+.5)}
+  ctx.stroke();
+  if(!grid)return;
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++)if(grid[r][c])cell(ctx,c*S,r*S,S,COLORS[grid[r][c]]);
+  if(cur&&state!=="over"){
+    let gy=cur.y;while(!hit(cur.m,cur.x,gy+1))gy++;
+    cur.m.forEach((row,r)=>row.forEach((v,c)=>{
+      if(v){
+        if(gy!==cur.y)cell(ctx,(cur.x+c)*S,(gy+r)*S,S,COLORS[cur.k],.22);
+      }
+    }));
+    cur.m.forEach((row,r)=>row.forEach((v,c)=>{
+      if(v&&cur.y+r>=0)cell(ctx,(cur.x+c)*S,(cur.y+r)*S,S,COLORS[cur.k]);
+    }));
+  }
+}
+function mini(g,k){
+  g.clearRect(0,0,96,96);
+  if(!k)return;
+  const m=SHAPES[k],s=22,w=m[0].length*s,h=m.length*s;
+  let minR=9,maxR=-1;m.forEach((row,r)=>{if(row.some(Boolean)){minR=Math.min(minR,r);maxR=Math.max(maxR,r)}});
+  const oy=(96-(maxR-minR+1)*s)/2-minR*s,ox=(96-w)/2;
+  m.forEach((row,r)=>row.forEach((v,c)=>{if(v)cell(g,ox+c*s,oy+r*s,s,COLORS[k])}));
+}
+function drawSide(){mini(nx,nextK);mini(hd,holdK)}
+
+function loop(t){
+  if(state==="play"){
+    acc+=t-last;
+    const speed=Math.max(90,800-(level-1)*70);
+    if(acc>=speed){
+      acc=0;
+      if(!hit(cur.m,cur.x,cur.y+1))cur.y++;else lock();
+    }
+  }
+  last=t;draw();
+  requestAnimationFrame(loop);
+}
+
+const keys={
+  ArrowLeft:()=>move(-1),ArrowRight:()=>move(1),ArrowDown:soft,
+  ArrowUp:()=>rotate(1),x:()=>rotate(1),X:()=>rotate(1),z:()=>rotate(-1),Z:()=>rotate(-1),
+  " ":hard,c:hold,C:hold,p:pause,P:pause
+};
+document.addEventListener("keydown",e=>{
+  const f=keys[e.key];
+  if(f){
+    if(e.target.tagName==="BUTTON"&&e.key===" ")return;
+    e.preventDefault();f();
+  }else if(e.key==="Enter"&&veil.hidden===false&&e.target.tagName!=="BUTTON"){$("go").click()}
+});
+
+const acts={left:()=>move(-1),right:()=>move(1),down:soft,rot:()=>rotate(1),drop:hard,hold:hold};
+document.querySelectorAll("#pad button").forEach(b=>{
+  let iv=null;
+  const f=acts[b.dataset.a];
+  const stop=()=>{clearInterval(iv);iv=null};
+  b.addEventListener("pointerdown",e=>{
+    e.preventDefault();f();
+    if(b.hasAttribute("data-rep")){stop();iv=setInterval(f,110)}
+  });
+  ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,stop));
+});
+
+grid=Array.from({length:R},()=>Array(C).fill(0));
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
