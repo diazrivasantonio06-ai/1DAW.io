@@ -23,34 +23,42 @@ function formatNumber(value) {
   return Number.isFinite(number) ? numberFormat.format(number) : "0";
 }
 
-function selectedGameStats() {
+function selectedGameColumns() {
   const games = Array.isArray(window.GAMES) ? window.GAMES : [];
   const game = games.find((item) => item.id === gameFilter.value);
   return game ? game.leaderboardStats || game.stats || [] : [];
 }
 
+function formatDuration(seconds) {
+  const totalSeconds = Number(seconds);
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours) return `${hours} h ${minutes} min`;
+  if (totalMinutes) return `${totalMinutes} min`;
+  return `${Math.floor(totalSeconds)} s`;
+}
+
 function renderHeadings() {
   headings.querySelectorAll("[data-game-stat]").forEach((heading) => heading.remove());
-  selectedGameStats().forEach((stat) => {
+  selectedGameColumns().forEach((column) => {
     const heading = document.createElement("th");
     heading.scope = "col";
     heading.dataset.gameStat = "true";
-    heading.textContent = stat.label;
+    heading.textContent = column.label;
     headings.append(heading);
   });
 }
 
 function renderRows(players) {
   rows.replaceChildren();
-  const gameStats = selectedGameStats();
+  const columns = selectedGameColumns();
   if (players.length === 0) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
     cell.className = "leaderboard-empty";
-    cell.colSpan = 8 + gameStats.length;
-    cell.textContent = gameFilter.value
-      ? "Todavía no hay partidas guardadas para este juego."
-      : "Todavía no hay partidas guardadas.";
+    cell.colSpan = 2 + columns.length;
+    cell.textContent = "Todavía no hay partidas guardadas para este juego.";
     row.append(cell);
     rows.append(row);
     return;
@@ -61,16 +69,11 @@ function renderRows(players) {
     const values = [
       formatNumber(index + 1),
       player.display_name,
-      formatNumber(player.games_played),
-      formatNumber(player.total_score),
-      formatNumber(player.best_score),
-      formatNumber(player.wins),
-      formatNumber(player.total_kills),
-      formatNumber(player.total_chests_opened),
-      ...gameStats.map((stat) => {
-        const value = stat.source === "session"
-          ? player[stat.key]
-          : player.game_stats && player.game_stats[stat.key];
+      ...columns.map((column) => {
+        const value = column.source === "session"
+          ? player[column.key]
+          : player.game_stats && player.game_stats[column.key];
+        if (column.key === "total_seconds") return formatDuration(value || 0);
         return formatNumber(value === null || value === undefined ? 0 : value);
       })
     ];
