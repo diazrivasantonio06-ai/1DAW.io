@@ -219,7 +219,7 @@ for(const b of G.eb){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(Math.hypot(b.x-p.x,
 const lk=Math.min(.5,G.st.luck*.02);let killsRecorded=0;
 G.en=G.en.filter(e=>{if(e.hp>0)return true;achievementProgress.totalKills++;G.kills++;killsRecorded++;if(e.ty=='boss'){achievementProgress.bossKills++;G.bossesKilled++}const n=e.g;burst(e.x,e.y,e.c,Math.min(22,6+e.r/2),e.ty=='boss'?320:180);if(e.ty=='boss')G.shake=.5;for(let i=0;i<Math.min(n,6);i++){let v=n>6?5:Math.ceil(n/Math.min(n,6));if(Math.random()<lk)v*=2;G.co.push({x:e.x+R(-8,8),y:e.y+R(-8,8),v,at:0})}return false});
 if(killsRecorded){checkAchievements();if(achievementProgress.totalKills%10<killsRecorded)saveAchievementProgress()}
-const end=G.t<=0,pk=70+G.st.rng*.6;for(const c of G.co){const d=Math.hypot(p.x-c.x,p.y-c.y);if(d<pk||end)c.at=1;if(c.at){c.x+=(p.x-c.x)/d*420*dt;c.y+=(p.y-c.y)/d*420*dt}if(d<14){earnGold(-c.v);G.xp+=-c.v}}
+const end=G.t<=0,pk=70+G.st.rng*.6;for(const c of G.co){const d=Math.hypot(p.x-c.x,p.y-c.y);if(d<pk||end)c.at=1;if(c.at){c.x+=(p.x-c.x)/d*420*dt;c.y+=(p.y-c.y)/d*420*dt}if(d<14){const v=c.v;c.v=0;earnGold(v);G.xp+=v}}
 G.co=G.co.filter(c=>c.v>0);
 lvChk();
 for(const q of G.pa){q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=.93;q.vy*=.93;q.l-=dt}G.pa=G.pa.filter(q=>q.l>0);
