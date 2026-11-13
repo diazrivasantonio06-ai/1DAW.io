@@ -5,6 +5,8 @@ create table if not exists public.profiles (
   last_active_at timestamptz,
   avatar_id text not null default 'avatar-arcade',
   banner_id text not null default 'banner-neon',
+  is_admin boolean not null default false,
+  is_vip boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -12,7 +14,15 @@ alter table public.profiles
   add column if not exists active_seconds bigint not null default 0 check (active_seconds >= 0),
   add column if not exists last_active_at timestamptz,
   add column if not exists avatar_id text not null default 'avatar-arcade',
-  add column if not exists banner_id text not null default 'banner-neon';
+  add column if not exists banner_id text not null default 'banner-neon',
+  add column if not exists is_admin boolean not null default false,
+  add column if not exists is_vip boolean not null default false;
+
+update public.profiles
+set is_admin = true,
+    is_vip = true
+where lower(btrim(display_name)) in ('antoniodr', 'ivangavg')
+  and (not is_admin or not is_vip);
 
 alter table public.profiles enable row level security;
 
@@ -715,9 +725,13 @@ begin
 end;
 $$;
 
-create or replace function public.get_public_profile(p_user_id uuid)
+drop function if exists public.get_public_profile(uuid);
+
+create function public.get_public_profile(p_user_id uuid)
 returns table (
   display_name text,
+  is_admin boolean,
+  is_vip boolean,
   avatar_id text,
   banner_id text,
   last_active_at timestamptz,
@@ -855,6 +869,8 @@ begin
     )
     select
       profile.display_name,
+      profile.is_admin,
+      profile.is_vip,
       profile.avatar_id,
       profile.banner_id,
       profile.last_active_at,

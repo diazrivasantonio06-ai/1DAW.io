@@ -6,14 +6,14 @@
   <meta name="theme-color" content="#11101e">
   <meta name="description" content="Consulta el perfil público y las estadísticas de juego de un jugador en 1DAW.io.">
   <title>Perfil de jugador | 1DAW.io</title>
-  <link rel="stylesheet" href="site.css?v=20261113-6">
+  <link rel="stylesheet" href="site.css?v=20261113-7">
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="supabase-config.js"></script>
   <script defer src="account.js"></script>
   <script defer src="presence.js"></script>
   <script defer src="friends.js?v=6"></script>
   <script defer src="games.js"></script>
-  <script defer src="perfil-publico.js"></script>
+  <script defer src="perfil-publico.js?v=2"></script>
 </head>
 <body>
   <div class="wrap">
@@ -41,6 +41,7 @@
             <span id="public-profile-avatar" class="public-profile-avatar" aria-hidden="true">🕹️</span>
             <div class="public-profile-heading-copy">
               <h2 id="public-profile-name"></h2>
+              <div id="public-profile-badges" class="profile-badges public-profile-badges" aria-label="Insignias del perfil" hidden></div>
               <p id="public-profile-presence"></p>
             </div>
           </div>

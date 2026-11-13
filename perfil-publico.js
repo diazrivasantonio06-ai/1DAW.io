@@ -115,6 +115,7 @@
   function renderProfile(data) {
     profile = data;
     document.querySelector("#public-profile-name").textContent = data.display_name;
+    renderProfileBadges(data);
     document.querySelector("#public-profile-avatar").textContent = avatars[data.avatar_id] || avatars["avatar-arcade"];
     document.querySelector("#public-profile-banner").className =
       `public-profile-banner ${banners[data.banner_id] || banners["banner-neon"]}`;
@@ -133,6 +134,21 @@
     renderGameStats(Array.isArray(data.game_stats) ? data.game_stats : []);
     renderRelationButton(data.relation_state);
     profilePanel.hidden = false;
+  }
+
+  function renderProfileBadges(data) {
+    const container = document.querySelector("#public-profile-badges");
+    container.replaceChildren();
+    [
+      { enabled: data.is_admin, label: "Admin", className: "profile-badge-admin" },
+      { enabled: data.is_vip, label: "VIP", className: "profile-badge-vip" }
+    ].filter((badge) => badge.enabled).forEach((badge) => {
+      const element = document.createElement("span");
+      element.className = `profile-badge ${badge.className}`;
+      element.textContent = badge.label;
+      container.append(element);
+    });
+    container.hidden = !container.childElementCount;
   }
 
   function renderRelationButton(relationState) {

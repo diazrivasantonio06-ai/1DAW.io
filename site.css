@@ -314,6 +314,10 @@ footer {
 .friends-group-member { display: flex; min-height: 40px; align-items: center; gap: .55rem; padding: .25rem; border-radius: .35rem; font-size: .82rem; }
 .friends-group-member:hover { background: #28292d; }
 .friends-avatar-small { font-size: 1.2rem; }
+.profile-badges { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .45rem; }
+.profile-badge { display: inline-flex; align-items: center; padding: .18rem .6rem; border: 1px solid; border-radius: 999px; font-size: .7rem; font-weight: 700; letter-spacing: .06em; line-height: 1.4; text-transform: uppercase; }
+.profile-badge-admin { border-color: #ff568e; background: rgb(255 86 142 / 16%); color: #ff98b9; }
+.profile-badge-vip { border-color: #ffdc61; background: rgb(255 220 97 / 14%); color: #ffdc61; }
 .public-profile-intro { padding: clamp(2.5rem, 7vw, 5rem) 0 2rem; }
 .public-profile-intro h1 { font-size: clamp(2rem, 6vw, 3.8rem); }
 .public-profile-intro p { max-width: 58ch; color: var(--muted); }

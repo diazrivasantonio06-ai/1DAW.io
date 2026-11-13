@@ -143,6 +143,21 @@ function renderProfileAppearance(profile) {
   renderCosmeticOptions(profile, level);
 }
 
+function renderProfileBadges(profile) {
+  const container = document.querySelector("#profile-badges");
+  container.replaceChildren();
+  [
+    { enabled: profile.is_admin, label: "Admin", className: "profile-badge-admin" },
+    { enabled: profile.is_vip, label: "VIP", className: "profile-badge-vip" }
+  ].filter((badge) => badge.enabled).forEach((badge) => {
+    const element = document.createElement("span");
+    element.className = `profile-badge ${badge.className}`;
+    element.textContent = badge.label;
+    container.append(element);
+  });
+  container.hidden = !container.childElementCount;
+}
+
 async function saveCosmetic(kind, id) {
   if (!currentProfile || !currentClient || savingCosmetic) return;
   const avatarId = kind === "avatar" ? id : currentProfile.avatar_id;
@@ -308,7 +323,7 @@ async function loadProfile(client, user) {
   showStatus(profileStatus, "", false);
 
   const [profileResult, statsResult, sessionsResult] = await Promise.all([
-    client.from("profiles").select("display_name,active_seconds,avatar_id,banner_id").eq("id", user.id).single(),
+    client.from("profiles").select("display_name,active_seconds,avatar_id,banner_id,is_admin,is_vip").eq("id", user.id).single(),
     client.rpc("get_my_game_stats"),
     client.from("game_sessions")
       .select("game_id,duration_seconds,kills,score,won,placement,round_reached,game_stats,created_at")
@@ -335,6 +350,7 @@ async function loadProfile(client, user) {
 
   currentProfile = profileResult.data;
   document.querySelector("#profile-name").textContent = currentProfile.display_name;
+  renderProfileBadges(currentProfile);
   document.querySelector("#total-games").textContent = String(totals.games);
   document.querySelector("#total-time").textContent = formatDuration(totals.seconds);
   document.querySelector("#total-kills").textContent = String(totals.kills);
