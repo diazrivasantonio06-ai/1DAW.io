@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11101e">
+  <meta name="description" content="Consulta el perfil público y las estadísticas de juego de un jugador en 1DAW.io.">
+  <title>Perfil de jugador | 1DAW.io</title>
+  <link rel="stylesheet" href="site.css?v=20261113-6">
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="supabase-config.js"></script>
+  <script defer src="account.js"></script>
+  <script defer src="presence.js"></script>
+  <script defer src="friends.js?v=6"></script>
+  <script defer src="games.js"></script>
+  <script defer src="perfil-publico.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="logo" href="index.html">1DAW<span>.</span>io</a>
+      <nav aria-label="Navegación principal">
+        <a href="index.html">Inicio</a>
+        <a href="juegos.html">Juegos</a>
+        <a href="leaderboard.html">Clasificación</a>
+        <a href="novedades.html">Novedades</a>
+        <a href="reportes.html">Reportar un bug</a>
+        <a href="perfil.html">Perfil</a>
+      </nav>
+    </header>
+    <main>
+      <section class="page-intro public-profile-intro">
+        <p class="eyebrow">Comunidad</p>
+        <h1>Perfil de jugador.</h1>
+        <p>Consulta el nivel y las estadísticas públicas de este jugador.</p>
+      </section>
+      <section class="public-profile-page">
+        <p id="public-profile-status" class="public-profile-status" role="status" aria-live="polite">Cargando perfil…</p>
+        <article id="public-profile-panel" class="public-profile-panel panel" hidden>
+          <div id="public-profile-banner" class="public-profile-banner banner-neon">
+            <span id="public-profile-avatar" class="public-profile-avatar" aria-hidden="true">🕹️</span>
+            <div class="public-profile-heading-copy">
+              <h2 id="public-profile-name"></h2>
+              <p id="public-profile-presence"></p>
+            </div>
+          </div>
+          <section class="public-level-card" aria-label="Nivel del perfil">
+            <div class="public-level-heading">
+              <strong id="public-profile-level">Nivel 1</strong>
+              <span id="public-profile-active-time"></span>
+            </div>
+          </section>
+          <div class="public-stats-grid" aria-label="Estadísticas totales">
+            <div class="public-stat-card"><strong id="public-total-games">0</strong><span>Partidas jugadas</span></div>
+            <div class="public-stat-card"><strong id="public-total-time">0 s</strong><span>Tiempo de juego</span></div>
+            <div class="public-stat-card"><strong id="public-total-kills">0</strong><span>Bajas</span></div>
+            <div class="public-stat-card"><strong id="public-total-wins">0</strong><span>Victorias</span></div>
+          </div>
+          <section>
+            <h2>Estadísticas por juego</h2>
+            <div id="public-profile-games" class="public-game-stats"></div>
+          </section>
+          <div class="public-profile-actions">
+            <button id="public-profile-relation" class="btn" type="button" disabled>Añadir amigo</button>
+            <a class="btn secondary" href="juegos.html">Volver a juegos</a>
+          </div>
+        </article>
+      </section>
+    </main>
+    <footer><span>© <span data-year></span> 1DAW.io</span><span>Hecho con cariño y muchas partidas.</span></footer>
+  </div>
+</body>
+</html>
