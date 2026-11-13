@@ -4,7 +4,9 @@ const grid = document.querySelector("#grid");
 const player = document.querySelector("#player");
 const frame = document.querySelector("#frame");
 const title = document.querySelector("#ptitle");
+const accountStatus = document.querySelector("#account-status");
 const games = Array.isArray(window.GAMES) ? window.GAMES : [];
+let activeGame = null;
 
 function renderGames() {
   games.forEach((game) => {
@@ -61,19 +63,49 @@ function renderGames() {
 }
 
 function openGame(game) {
+  activeGame = game;
   title.textContent = game.title;
+  accountStatus.textContent = "";
   frame.src = game.src;
   player.classList.add("open");
   document.querySelector("#back").focus();
 }
 
 function closeGame() {
+  activeGame = null;
   player.classList.remove("open");
   frame.removeAttribute("src");
   if (location.hash.startsWith("#jugar-")) {
     history.replaceState(null, "", `${location.pathname}${location.search}`);
   }
 }
+
+window.addEventListener("message", async (event) => {
+  if (event.origin !== location.origin || event.source !== frame.contentWindow) return;
+  const message = event.data;
+  if (!activeGame || !message || message.type !== "1daw:game-result" || message.gameId !== activeGame.id) return;
+
+  const result = message.result;
+  const isIntegerOrNull = (value) => value === null || (Number.isInteger(value) && value >= 0);
+  if (!result || typeof result.won !== "boolean"
+    || !Number.isInteger(result.durationSeconds) || result.durationSeconds < 0
+    || !Number.isInteger(result.kills) || result.kills < 0
+    || !Number.isInteger(result.score) || result.score < 0
+    || !isIntegerOrNull(result.placement)
+    || !isIntegerOrNull(result.roundReached)) {
+    accountStatus.textContent = "No se pudieron validar las estadísticas de esta partida.";
+    return;
+  }
+
+  try {
+    const saved = await window.ARCADE_ACCOUNT.recordGameResult(activeGame.id, result);
+    accountStatus.textContent = saved
+      ? "Partida guardada en tu perfil."
+      : "Inicia sesión antes de jugar para guardar tus estadísticas.";
+  } catch (error) {
+    accountStatus.textContent = `No se pudo guardar la partida: ${error.message}`;
+  }
+});
 
 document.querySelector("#back").addEventListener("click", closeGame);
 function syncRoute() {

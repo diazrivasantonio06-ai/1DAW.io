@@ -55,7 +55,10 @@
     .player-bar strong { overflow: hidden; font-family: var(--font-display); font-size: .9rem; text-overflow: ellipsis; white-space: nowrap; }
     #frame { flex: 1; width: 100%; border: 0; background: #000; }
   </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="supabase-config.js"></script>
   <script src="games.js"></script>
+  <script defer src="account.js"></script>
   <script defer src="juegos.js"></script>
 </head>
 <body>
@@ -67,6 +70,7 @@
         <a href="juegos.html" aria-current="page">Juegos</a>
         <a href="novedades.html">Novedades</a>
         <a href="reportes.html">Reportar un bug</a>
+        <a href="perfil.html">Perfil</a>
       </nav>
     </header>
     <main>
@@ -83,6 +87,7 @@
     <div class="player-bar">
       <button class="btn secondary" id="back" type="button">← Volver a los juegos</button>
       <strong id="ptitle"></strong>
+      <span id="account-status" aria-live="polite"></span>
     </div>
     <iframe id="frame" title="Juego" sandbox="allow-scripts allow-pointer-lock allow-same-origin"></iframe>
   </div>

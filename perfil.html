@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11101e">
+  <meta name="description" content="Tu perfil, historial y estadísticas de juego en 1DAW.io.">
+  <title>Perfil | 1DAW.io</title>
+  <link rel="stylesheet" href="site.css">
+  <style>
+    .page-intro { padding: clamp(2.5rem, 7vw, 5rem) 0 2rem; }
+    .page-intro h1 { font-size: clamp(2rem, 6vw, 3.8rem); }
+    .page-intro p { max-width: 58ch; color: var(--muted); }
+    .profile-page { max-width: 900px; padding-bottom: 4rem; }
+    .account-panel, .profile-panel { padding: clamp(1.2rem, 4vw, 2rem); }
+    .account-panel { max-width: 560px; }
+    .account-panel h2, .profile-panel h2 { margin: 0 0 .4rem; font-size: 1.25rem; }
+    .account-copy, .profile-email { color: var(--muted); }
+    .account-form { display: grid; gap: 1rem; margin-top: 1.2rem; }
+    .account-form label { display: grid; gap: .35rem; font-weight: 700; }
+    .account-form input {
+      width: 100%;
+      min-height: 46px;
+      padding: .65rem .8rem;
+      border: 1px solid var(--line);
+      border-radius: .7rem;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .account-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+    .text-button { padding: .5rem 0; border: 0; background: none; color: var(--aqua); cursor: pointer; }
+    .account-status { min-height: 1.6em; color: var(--muted); }
+    .account-status[data-error="true"] { color: #ff8eaa; }
+    .setup-notice { max-width: 720px; margin-bottom: 2rem; padding: 1.2rem; border: 1px solid var(--yellow); border-radius: 1rem; }
+    .setup-notice p { margin: .4rem 0 0; color: var(--muted); }
+    .profile-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+    .profile-heading h2 { margin: 0; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; margin: 1.2rem 0; }
+    .stat-card, .game-stat { padding: 1rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--panel); }
+    .stat-card strong { display: block; color: var(--aqua); font: 1.3rem var(--font-display); }
+    .stat-card span, .game-stat p { color: var(--muted); font-size: .9rem; }
+    .game-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .8rem; }
+    .game-stat h3 { margin: 0 0 .4rem; }
+    .game-stat p { margin: .2rem 0; }
+    .history { display: grid; gap: .6rem; padding: 0; list-style: none; }
+    .history li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3rem 1rem; padding: .8rem 0; border-bottom: 1px solid var(--line); }
+    .history small { color: var(--muted); }
+    .empty-history { color: var(--muted); }
+    [hidden] { display: none !important; }
+  </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="supabase-config.js"></script>
+  <script defer src="account.js"></script>
+  <script defer src="games.js"></script>
+  <script defer src="profile.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="logo" href="index.html">1DAW<span>.</span>io</a>
+      <nav aria-label="Navegación principal">
+        <a href="index.html">Inicio</a>
+        <a href="juegos.html">Juegos</a>
+        <a href="novedades.html">Novedades</a>
+        <a href="reportes.html">Reportar un bug</a>
+        <a href="perfil.html" aria-current="page">Perfil</a>
+      </nav>
+    </header>
+    <main>
+      <section class="page-intro">
+        <p class="eyebrow">Tu cuenta</p>
+        <h1>Tu perfil arcade.</h1>
+        <p>Guarda tus partidas y consulta tus estadísticas desde cualquier dispositivo.</p>
+      </section>
+      <section class="profile-page">
+        <aside id="setup-notice" class="setup-notice" hidden>
+          <strong>Falta conectar Supabase</strong>
+          <p>Completa la URL del proyecto y la clave anon en <code>supabase-config.js</code>, y ejecuta <code>supabase-schema.sql</code> en el SQL Editor de Supabase.</p>
+        </aside>
+        <section id="auth-panel" class="account-panel panel" hidden>
+          <h2 id="auth-title">Inicia sesión</h2>
+          <p class="account-copy">Inicia sesión para guardar tus partidas y ver tu perfil.</p>
+          <form id="auth-form" class="account-form">
+            <label id="display-name-field" hidden>
+              Nombre de jugador
+              <input id="display-name" name="display-name" maxlength="24" autocomplete="nickname">
+            </label>
+            <label>
+              Correo electrónico
+              <input id="email" name="email" type="email" autocomplete="email" required>
+            </label>
+            <label>
+              Contraseña
+              <input id="password" name="password" type="password" minlength="8" autocomplete="current-password" required>
+            </label>
+            <div class="account-actions">
+              <button id="submit-auth" class="btn" type="submit">Iniciar sesión</button>
+              <button id="toggle-auth" class="text-button" type="button">Crear una cuenta</button>
+            </div>
+          </form>
+          <p id="account-status" class="account-status" aria-live="polite"></p>
+        </section>
+        <section id="profile-panel" class="profile-panel panel" hidden>
+          <div class="profile-heading">
+            <div>
+              <h2 id="profile-name"></h2>
+              <p id="profile-email" class="profile-email"></p>
+            </div>
+            <button id="sign-out" class="btn secondary" type="button">Cerrar sesión</button>
+          </div>
+          <p id="profile-status" class="account-status" aria-live="polite"></p>
+          <div class="stats-grid" aria-label="Estadísticas totales">
+            <div class="stat-card"><strong id="total-games">0</strong><span>Partidas jugadas</span></div>
+            <div class="stat-card"><strong id="total-time">0 min</strong><span>Tiempo de juego</span></div>
+            <div class="stat-card"><strong id="total-kills">0</strong><span>Bajas</span></div>
+            <div class="stat-card"><strong id="total-wins">0</strong><span>Victorias</span></div>
+          </div>
+          <section>
+            <h2>Estadísticas por juego</h2>
+            <div id="game-stats" class="game-stats"></div>
+          </section>
+          <section>
+            <h2>Partidas recientes</h2>
+            <ul id="game-history" class="history"></ul>
+          </section>
+        </section>
+      </section>
+    </main>
+    <footer><span>© <span data-year></span> 1DAW.io</span><span>Hecho con cariño y muchas partidas.</span></footer>
+  </div>
+</body>
+</html>

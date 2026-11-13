@@ -164,7 +164,9 @@ function hud(){X.font='600 15px system-ui';X.textBaseline='middle';
  for(let i=0;i<3;i++){X.fillStyle=MAT[i].c;X.fillRect(22,H-86+i*24,12,12);X.fillStyle=i===P.mat?'#ffd54a':'#fff';X.fillText((i===P.mat?'▶ ':'')+MAT[i].n+': '+P.m[i],42,H-80+i*24)}
  X.textAlign='right';msgs.forEach((m,i)=>{X.fillStyle=m.c;X.fillText(m.t,W-14,H-30-i*22)});
  if(P.al&&D(P.x,P.y,Z.cx,Z.cy)>Z.r){X.textAlign='center';X.fillStyle='#e0b3ff';X.fillText('¡Estás en la tormenta! Vuelve a la zona segura',W/2,70)}}
-function end0(){ov.style.display='flex';const b=ov.firstChild;
+function end0(){const won=state==='win',placement=won?1:E.filter(e=>e.al).length+1;
+ if(window.parent!==window)window.parent.postMessage({type:'1daw:game-result',gameId:'Claude-nite',result:{durationSeconds:Math.floor(T),kills,score:kills,won,placement,roundReached:null}},location.origin);
+ ov.style.display='flex';const b=ov.firstChild;
  b.innerHTML=state==='win'?'<h1>🏆 ¡Victoria Royale!</h1><p>Eres el último superviviente.</p><p>Bajas: '+kills+'</p><p><input id="nm" maxlength="14" value="'+PN+'"></p><button id="go">Jugar otra vez</button>':'<h1>💀 Eliminado</h1><p>Quedabas en el puesto #'+(E.filter(e=>e.al).length+1)+'.</p><p>Bajas: '+kills+'</p><p><input id="nm" maxlength="14" value="'+PN+'"></p><button id="go">Reintentar</button>';
  document.getElementById('go').onclick=start}
 function start(){const n=document.getElementById('nm');if(n)PN=(n.value||'').replace(/[<>"'&]/g,'').trim().slice(0,14)||'Jugador';try{localStorage.setItem('ir_n',PN)}catch(_){}ov.style.display='none';init()}
