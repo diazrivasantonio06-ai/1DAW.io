@@ -10,11 +10,19 @@ const UPDATES = [
   //   changes: ["Primer cambio", "Segundo cambio"]
   // }
   {
-    game: "Nombre del juego",
-    version: "1.0",
+    game: "Claude Of Duty",
+    version: "0.5",
     date: "2026-11-13",
-    title: "Título de la actualización",
-    changes: ["Primer cambio", "Segundo cambio"]
+    title: "Versión Alpha 0.5",
+    changes: ["Mejoras visuales", "Corrección de errores", "Optimización del rendimiento"]
+  },
+
+  {
+    game: "Claude-Nite",
+    version: "3.5",
+    date: "2026-11-13",
+    title: "Pre-Alpha 3.5",
+    changes: ["Mejoras visuales", "Corrección de errores", "Optimización del rendimiento"]
   }
 ];
 
