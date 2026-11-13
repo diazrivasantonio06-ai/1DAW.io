@@ -36,7 +36,8 @@ window.ARCADE_ACCOUNT = (() => {
       score: result.score,
       won: result.won,
       placement: result.placement,
-      round_reached: result.roundReached
+      round_reached: result.roundReached,
+      game_stats: result.gameStats || {}
     });
     if (error) throw error;
     return true;

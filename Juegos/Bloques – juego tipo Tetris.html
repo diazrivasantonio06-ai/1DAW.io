@@ -102,7 +102,7 @@ const $=id=>document.getElementById(id);
 const cv=$("board"),ctx=cv.getContext("2d");
 const nx=$("next").getContext("2d"),hd=$("hold").getContext("2d");
 const veil=$("veil");
-let grid,cur,nextK,holdK,canHold,bag,score,lines,level,best=0,state="idle",acc=0,last=0;
+let grid,cur,nextK,holdK,canHold,bag,score,lines,level,best=0,state="idle",acc=0,last=0,startedAt=0;
 
 try{best=parseInt(localStorage.getItem("bloques-best"),10)||0}catch(e){}
 $("hi").textContent=best;
@@ -167,8 +167,10 @@ function lock(){
   drawSide();ui();
 }
 function over(){
+  if(state==="over")return;
   state="over";
   if(score>best){best=score;try{localStorage.setItem("bloques-best",String(best))}catch(e){}}
+  if(window.parent!==window)window.parent.postMessage({type:"1daw:game-result",gameId:"bloques",result:{durationSeconds:Math.min(86400,Math.floor((performance.now()-startedAt)/1000)),kills:0,chestsOpened:0,score,won:false,placement:null,roundReached:level,gameStats:{linesCleared:lines}}},location.origin);
   $("vt").textContent="Fin de la partida";
   $("vp").innerHTML="Hiciste <b>"+score+"</b> puntos y "+lines+" líneas.";
   $("go").textContent="Jugar otra vez";
@@ -182,7 +184,7 @@ function start(){
   grid=Array.from({length:R},()=>Array(C).fill(0));
   bag=[];score=0;lines=0;level=1;holdK=null;canHold=true;acc=0;
   nextK=take();spawn(take());
-  state="play";veil.hidden=true;last=performance.now();
+  state="play";veil.hidden=true;last=performance.now();startedAt=last;
   ui();drawSide();
 }
 function pause(){

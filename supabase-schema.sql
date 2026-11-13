@@ -257,6 +257,7 @@ create table if not exists public.game_sessions (
   duration_seconds integer not null default 0 check (duration_seconds between 0 and 86400),
   kills integer not null default 0 check (kills between 0 and 100000),
   chests_opened integer not null default 0 check (chests_opened between 0 and 100000),
+  game_stats jsonb not null default '{}'::jsonb check (jsonb_typeof(game_stats) = 'object'),
   score integer not null default 0 check (score between 0 and 1000000000),
   won boolean not null default false,
   placement integer check (placement between 1 and 10000),
@@ -266,10 +267,15 @@ create table if not exists public.game_sessions (
 
 alter table public.game_sessions
   add column if not exists chests_opened integer not null default 0
-  check (chests_opened between 0 and 100000);
+  check (chests_opened between 0 and 100000),
+  add column if not exists game_stats jsonb not null default '{}'::jsonb
+  check (jsonb_typeof(game_stats) = 'object');
 
 create index if not exists game_sessions_user_created_idx
   on public.game_sessions (user_id, created_at desc);
+
+create index if not exists game_sessions_game_user_idx
+  on public.game_sessions (game_id, user_id);
 
 alter table public.game_sessions enable row level security;
 
@@ -297,30 +303,147 @@ returns table (
   wins bigint,
   best_score integer,
   best_round integer,
-  total_chests_opened bigint
+  total_chests_opened bigint,
+  game_stats jsonb
 )
 language sql
 stable
 security invoker
 set search_path = ''
 as $$
+  with game_totals as (
+    select
+      sessions.game_id,
+      count(*) as games_played,
+      coalesce(sum(sessions.duration_seconds), 0) as total_seconds,
+      coalesce(sum(sessions.kills), 0) as total_kills,
+      coalesce(sum(sessions.score), 0) as total_score,
+      count(*) filter (where sessions.won) as wins,
+      coalesce(max(sessions.score), 0)::integer as best_score,
+      coalesce(max(sessions.round_reached), 0)::integer as best_round,
+      coalesce(sum(sessions.chests_opened), 0) as total_chests_opened
+    from public.game_sessions as sessions
+    where sessions.user_id = (select auth.uid())
+    group by sessions.game_id
+  ),
+  metric_totals as (
+    select
+      sessions.game_id,
+      metric.key,
+      sum(case
+        when jsonb_typeof(metric.value) = 'number'
+          and metric.value::text ~ '^(0|[1-9][0-9]{0,8}|1000000000)$'
+          then (metric.value #>> '{}')::bigint
+        else 0
+      end) as total
+    from public.game_sessions as sessions
+    cross join lateral jsonb_each(sessions.game_stats) as metric(key, value)
+    where sessions.user_id = (select auth.uid())
+    group by sessions.game_id, metric.key
+  ),
+  metric_objects as (
+    select
+      metric_totals.game_id,
+      jsonb_object_agg(metric_totals.key, metric_totals.total) as game_stats
+    from metric_totals
+    group by metric_totals.game_id
+  )
   select
-    sessions.game_id,
-    count(*) as games_played,
-    coalesce(sum(sessions.duration_seconds), 0) as total_seconds,
-    coalesce(sum(sessions.kills), 0) as total_kills,
-    coalesce(sum(sessions.score), 0) as total_score,
-    count(*) filter (where sessions.won) as wins,
-    coalesce(max(sessions.score), 0)::integer as best_score,
-    coalesce(max(sessions.round_reached), 0)::integer as best_round,
-    coalesce(sum(sessions.chests_opened), 0) as total_chests_opened
-  from public.game_sessions as sessions
-  where sessions.user_id = (select auth.uid())
-  group by sessions.game_id
-  order by sessions.game_id;
+    game_totals.game_id,
+    game_totals.games_played,
+    game_totals.total_seconds,
+    game_totals.total_kills,
+    game_totals.total_score,
+    game_totals.wins,
+    game_totals.best_score,
+    game_totals.best_round,
+    game_totals.total_chests_opened,
+    coalesce(metric_objects.game_stats, '{}'::jsonb) as game_stats
+  from game_totals
+  left join metric_objects on metric_objects.game_id = game_totals.game_id
+  order by game_totals.game_id;
 $$;
 
 grant execute on function public.get_my_game_stats() to authenticated;
 revoke all on function public.get_my_game_stats() from public, anon;
+
+drop function if exists public.get_leaderboard(text);
+
+create or replace function public.get_leaderboard(p_game_id text default null)
+returns table (
+  display_name text,
+  games_played bigint,
+  total_score bigint,
+  best_score integer,
+  best_round integer,
+  best_placement integer,
+  wins bigint,
+  total_kills bigint,
+  total_chests_opened bigint,
+  total_seconds bigint,
+  game_stats jsonb
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with filtered_sessions as (
+    select
+      sessions.user_id,
+      sessions.game_id,
+      sessions.duration_seconds,
+      sessions.kills,
+      sessions.chests_opened,
+      sessions.score,
+      sessions.won,
+      sessions.placement,
+      sessions.round_reached,
+      sessions.game_stats
+    from public.game_sessions as sessions
+    where p_game_id is null or sessions.game_id = p_game_id
+  ),
+  metric_totals as (
+    select
+      sessions.user_id,
+      metric.key,
+      sum(case
+        when jsonb_typeof(metric.value) = 'number'
+          and metric.value::text ~ '^(0|[1-9][0-9]{0,8}|1000000000)$'
+          then (metric.value #>> '{}')::bigint
+        else 0
+      end) as total
+    from filtered_sessions as sessions
+    cross join lateral jsonb_each(sessions.game_stats) as metric(key, value)
+    group by sessions.user_id, metric.key
+  ),
+  metric_objects as (
+    select
+      metric_totals.user_id,
+      jsonb_object_agg(metric_totals.key, metric_totals.total) as game_stats
+    from metric_totals
+    group by metric_totals.user_id
+  )
+  select
+    p.display_name,
+    count(*) as games_played,
+    coalesce(sum(sessions.score), 0)::bigint as total_score,
+    coalesce(max(sessions.score), 0)::integer as best_score,
+    coalesce(max(sessions.round_reached), 0)::integer as best_round,
+    min(sessions.placement) filter (where sessions.placement is not null) as best_placement,
+    count(*) filter (where sessions.won) as wins,
+    coalesce(sum(sessions.kills), 0)::bigint as total_kills,
+    coalesce(sum(sessions.chests_opened), 0)::bigint as total_chests_opened,
+    coalesce(sum(sessions.duration_seconds), 0)::bigint as total_seconds,
+    coalesce(metric_objects.game_stats, '{}'::jsonb) as game_stats
+  from filtered_sessions as sessions
+  join public.profiles as p on p.id = sessions.user_id
+  left join metric_objects on metric_objects.user_id = sessions.user_id
+  group by p.id, p.display_name, metric_objects.game_stats
+  order by total_score desc, best_score desc, wins desc, games_played desc, p.display_name asc;
+$$;
+
+revoke all on function public.get_leaderboard(text) from public, anon, authenticated;
+grant execute on function public.get_leaderboard(text) to anon, authenticated;
 
 notify pgrst, 'reload schema';

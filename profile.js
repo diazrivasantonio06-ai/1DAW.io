@@ -215,6 +215,26 @@ function renderGameStats(stats) {
         `Cofres abiertos: ${value("total_chests_opened")}`,
         `Eliminaciones: ${value("total_kills")}`
       ];
+    } else if (id === "patata-espacial") {
+      details = [
+        `${value("games_played")} partidas`,
+        `${value("wins")} rescates`,
+        `Enemigos derrotados: ${value("total_kills")}`,
+        `Mejor oleada: ${value("best_round")}`
+      ];
+    } else if (id === "bloques") {
+      details = [
+        `${value("games_played")} partidas`,
+        `Puntuación total: ${value("total_score")}`,
+        `Mejor puntuación: ${value("best_score")}`,
+        `Mejor nivel: ${value("best_round")}`
+      ];
+    } else if (id === "500-cofres-animados") {
+      details = [
+        `${value("games_played")} partidas completadas`,
+        `Cofres abiertos: ${value("total_chests_opened")}`,
+        `Tiempo jugado: ${formatDuration(value("total_seconds"))}`
+      ];
     } else {
       details = [
         `${value("games_played")} partidas`,
@@ -223,6 +243,11 @@ function renderGameStats(stats) {
         `Mejor puntuación: ${value("best_score")}`
       ];
     }
+    const game = games.find((item) => item.id === id);
+    const gameStats = (stat && stat.game_stats) || {};
+    (game && game.stats ? game.stats : []).forEach((metric) => {
+      details.push(`${metric.label}: ${Number(gameStats[metric.key] || 0)}`);
+    });
     card.append(heading);
     details.forEach((detail) => {
       const line = document.createElement("p");
@@ -261,7 +286,12 @@ function renderHistory(sessions) {
         : session.round_reached
           ? `Ronda ${session.round_reached}`
           : "Partida terminada";
-    details.textContent = `${outcome} · ${Number(session.kills)} bajas · ${formatDuration(session.duration_seconds)}`;
+    const game = Array.isArray(window.GAMES) ? window.GAMES.find((item) => item.id === session.game_id) : null;
+    const gameStats = session.game_stats || {};
+    const customStats = game && game.stats
+      ? game.stats.map((metric) => `${metric.label}: ${Number(gameStats[metric.key] || 0)}`)
+      : [];
+    details.textContent = [`${outcome} · ${Number(session.kills)} bajas · ${formatDuration(session.duration_seconds)}`, ...customStats].join(" · ");
     row.append(summary, details);
     list.append(row);
   });
@@ -281,7 +311,7 @@ async function loadProfile(client, user) {
     client.from("profiles").select("display_name,active_seconds,avatar_id,banner_id").eq("id", user.id).single(),
     client.rpc("get_my_game_stats"),
     client.from("game_sessions")
-      .select("game_id,duration_seconds,kills,score,won,placement,round_reached,created_at")
+      .select("game_id,duration_seconds,kills,score,won,placement,round_reached,game_stats,created_at")
       .order("created_at", { ascending: false })
       .limit(10)
   ]);

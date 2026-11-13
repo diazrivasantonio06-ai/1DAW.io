@@ -87,19 +87,25 @@ window.addEventListener("message", async (event) => {
 
   const result = message.result;
   const isIntegerOrNull = (value) => value === null || (Number.isInteger(value) && value >= 0);
+  const gameStats = result && result.gameStats === undefined ? {} : result && result.gameStats;
+  const allowedStatKeys = new Set((activeGame.stats || []).map((stat) => stat.key));
+  const validGameStats = gameStats && typeof gameStats === "object" && !Array.isArray(gameStats)
+    && Object.entries(gameStats).every(([key, value]) => allowedStatKeys.has(key)
+      && Number.isInteger(value) && value >= 0 && value <= 1000000000);
   if (!result || typeof result.won !== "boolean"
     || !Number.isInteger(result.durationSeconds) || result.durationSeconds < 0
     || !Number.isInteger(result.kills) || result.kills < 0
     || !Number.isInteger(result.chestsOpened) || result.chestsOpened < 0
     || !Number.isInteger(result.score) || result.score < 0
     || !isIntegerOrNull(result.placement)
-    || !isIntegerOrNull(result.roundReached)) {
+    || !isIntegerOrNull(result.roundReached)
+    || !validGameStats) {
     accountStatus.textContent = "No se pudieron validar las estadísticas de esta partida.";
     return;
   }
 
   try {
-    const saved = await window.ARCADE_ACCOUNT.recordGameResult(activeGame.id, result);
+    const saved = await window.ARCADE_ACCOUNT.recordGameResult(activeGame.id, { ...result, gameStats });
     accountStatus.textContent = saved
       ? "Partida guardada en tu perfil."
       : "Inicia sesión antes de jugar para guardar tus estadísticas.";

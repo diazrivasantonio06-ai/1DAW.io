@@ -97,7 +97,7 @@ var L=[
 ];
 var P={n:"¡TOKEN PIRATA!",c:"#ff3d6e",i:["🏴‍☠️"]};
 var tilt=["none","hue-rotate(170deg)","hue-rotate(290deg)"];
-var total=0,pir=0,openN=0,busy=false;
+var total=0,pir=0,openN=0,uniqueOpened=0,busy=false,sessionStartedAt=0,sessionRecorded=false;
 var btn=document.getElementById("all"),cnt=document.getElementById("cnt");
 function pick(){if(Math.random()<1/5000)return P;var t=0;L.forEach(function(x){t+=x.w});var r=Math.random()*t;for(var k=0;k<L.length;k++){r-=L[k].w;if(r<=0)return L[k]}return L[0]}
 var fx=document.getElementById("fx"),fxT;
@@ -149,7 +149,7 @@ function ui(){
 function mk(idx){
  var card=document.createElement("div");card.className="card";
  card.innerHTML='<div class="stage">'+SVG+'<div class="loot"></div></div><div class="name"></div>';
- var st=card.firstChild,lt=st.querySelector(".loot"),nm=card.lastChild,opened=false;
+ var st=card.firstChild,lt=st.querySelector(".loot"),nm=card.lastChild,opened=false,hasBeenOpened=false;
  st.querySelector("svg").style.filter=tilt[idx%3];
  function sparks(c,n){
   for(var k=0;k<n;k++){var s=document.createElement("div");s.className="spark";
@@ -160,11 +160,16 @@ function mk(idx){
  }
  function doOpen(){
   var r=pick(),ic=r.i[Math.floor(Math.random()*r.i.length)];
+  if(!hasBeenOpened){if(uniqueOpened===0)sessionStartedAt=Date.now();uniqueOpened++;hasBeenOpened=true}
   lt.textContent=ic;lt.style.borderColor=r.c;lt.style.boxShadow="0 0 12px "+r.c;
   nm.textContent=r.n;nm.style.color=r.c;nm.className=r===P?"name p":"name";
   st.classList.add("open");opened=true;openN++;total++;
   if(r===P){pir++;congrats();sparks(r.c,16);setTimeout(function(){sparks(r.c,16)},250)}else sparks(r.c,5);
   ui();
+  if(uniqueOpened===N&&!sessionRecorded){
+   sessionRecorded=true;
+   if(window.parent!==window)window.parent.postMessage({type:"1daw:game-result",gameId:"500-cofres-animados",result:{durationSeconds:Math.min(86400,Math.floor((Date.now()-sessionStartedAt)/1000)),kills:0,chestsOpened:uniqueOpened,score:pir,won:true,placement:null,roundReached:null,gameStats:{pirateTokens:pir}}},location.origin);
+  }
  }
  card.doClose=function(){if(!opened)return;st.classList.remove("open");nm.textContent="";opened=false;openN--};
  card.doOpen=function(fast){

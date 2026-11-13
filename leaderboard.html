@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11101e">
+  <meta name="description" content="Consulta las estadísticas y puntuaciones de la comunidad de 1DAW.io.">
+  <title>Clasificación | 1DAW.io</title>
+  <link rel="stylesheet" href="site.css">
+  <style>
+    .page-intro { padding: clamp(2.5rem, 7vw, 5rem) 0 2rem; }
+    .page-intro h1 { font-size: clamp(2rem, 6vw, 3.8rem); }
+    .page-intro p { max-width: 58ch; color: var(--muted); }
+    .leaderboard-page { padding-bottom: 4rem; }
+    .leaderboard-panel { padding: clamp(1rem, 3vw, 1.6rem); }
+    .leaderboard-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .8rem; margin-bottom: 1rem; }
+    .leaderboard-controls label { display: grid; flex: 1 1 250px; gap: .35rem; font-weight: 700; }
+    .leaderboard-controls select { min-height: 48px; padding: .6rem .8rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--bg); color: var(--text); }
+    #leaderboard-status { min-height: 1.6em; color: var(--muted); }
+    #leaderboard-status[data-error="true"] { color: #ff8eaa; }
+    .leaderboard-table-wrap { overflow-x: auto; }
+    .leaderboard-table { width: 100%; min-width: 760px; border-collapse: collapse; text-align: left; }
+    .leaderboard-table th, .leaderboard-table td { padding: .8rem .7rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .leaderboard-table th { color: var(--aqua); font-size: .82rem; }
+    .leaderboard-table td:first-child { color: var(--yellow); font-weight: 700; }
+    .leaderboard-table td:nth-child(2) { font-weight: 700; }
+    .leaderboard-empty { color: var(--muted); text-align: center; }
+  </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="supabase-config.js"></script>
+  <script defer src="account.js"></script>
+  <script defer src="games.js"></script>
+  <script defer src="leaderboard.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="logo" href="index.html">1DAW<span>.</span>io</a>
+      <nav aria-label="Navegación principal">
+        <a href="index.html">Inicio</a>
+        <a href="juegos.html">Juegos</a>
+        <a href="leaderboard.html" aria-current="page">Clasificación</a>
+        <a href="novedades.html">Novedades</a>
+        <a href="reportes.html">Reportar un bug</a>
+        <a href="perfil.html">Perfil</a>
+      </nav>
+    </header>
+    <main>
+      <section class="page-intro">
+        <p class="eyebrow">La comunidad</p>
+        <h1>Clasificación arcade.</h1>
+        <p>Compara las estadísticas de los jugadores y filtra la clasificación por juego.</p>
+      </section>
+      <section class="leaderboard-page">
+        <div class="leaderboard-panel panel">
+          <div class="leaderboard-controls">
+            <label for="game-filter">
+              Filtrar por juego
+              <select id="game-filter">
+                <option value="">Todos los juegos</option>
+              </select>
+            </label>
+            <button id="refresh-leaderboard" class="btn secondary" type="button">Actualizar</button>
+          </div>
+          <p id="leaderboard-status" role="status" aria-live="polite"></p>
+          <div class="leaderboard-table-wrap">
+            <table class="leaderboard-table">
+              <thead>
+                <tr id="leaderboard-headings">
+                  <th scope="col">Puesto</th>
+                  <th scope="col">Jugador</th>
+                  <th scope="col">Partidas</th>
+                  <th scope="col">Puntuación total</th>
+                  <th scope="col">Mejor puntuación</th>
+                  <th scope="col">Victorias</th>
+                  <th scope="col">Eliminaciones</th>
+                  <th scope="col">Cofres abiertos</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer><span>© <span data-year></span> 1DAW.io</span><span>Hecho con cariño y muchas partidas.</span></footer>
+  </div>
+</body>
+</html>
