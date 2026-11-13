@@ -90,6 +90,7 @@ window.addEventListener("message", async (event) => {
   if (!result || typeof result.won !== "boolean"
     || !Number.isInteger(result.durationSeconds) || result.durationSeconds < 0
     || !Number.isInteger(result.kills) || result.kills < 0
+    || !Number.isInteger(result.chestsOpened) || result.chestsOpened < 0
     || !Number.isInteger(result.score) || result.score < 0
     || !isIntegerOrNull(result.placement)
     || !isIntegerOrNull(result.roundReached)) {

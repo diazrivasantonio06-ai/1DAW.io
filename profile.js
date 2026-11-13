@@ -46,25 +46,50 @@ function gameTitle(gameId) {
 function renderGameStats(stats) {
   const container = document.querySelector("#game-stats");
   container.replaceChildren();
-  if (!stats.length) {
+  const games = Array.isArray(window.GAMES) ? window.GAMES : [];
+  const statsByGame = new Map(stats.map((stat) => [stat.game_id, stat]));
+  const knownGameIds = new Set(games.map((game) => game.id));
+  const cards = [
+    ...games.map((game) => ({ id: game.id, title: game.title, stat: statsByGame.get(game.id) || null })),
+    ...stats
+      .filter((stat) => !knownGameIds.has(stat.game_id))
+      .map((stat) => ({ id: stat.game_id, title: gameTitle(stat.game_id), stat }))
+  ];
+
+  if (!cards.length) {
     const empty = document.createElement("p");
     empty.className = "empty-history";
-    empty.textContent = "Todavía no hay partidas guardadas. Inicia sesión antes de jugar.";
+    empty.textContent = "Todavía no hay estadísticas disponibles.";
     container.append(empty);
     return;
   }
 
-  stats.forEach((stat) => {
+  cards.forEach(({ id, title: gameName, stat }) => {
     const card = document.createElement("article");
     card.className = "game-stat";
     const heading = document.createElement("h3");
-    heading.textContent = gameTitle(stat.game_id);
-    const details = [
-      `${Number(stat.games_played)} partidas`,
-      `${Number(stat.wins)} victorias`,
-      `${Number(stat.total_kills)} bajas`,
-      `Mejor puntuación: ${Number(stat.best_score)}`
-    ];
+    heading.textContent = gameName;
+    const value = (field) => Number((stat && stat[field]) || 0);
+    let details;
+    if (id === "claude-of-duty") {
+      details = [
+        `Mejor oleada: ${value("best_round")}`,
+        `Zombis eliminados: ${value("total_kills")}`
+      ];
+    } else if (id === "Claude-nite") {
+      details = [
+        `Tiempo jugado: ${formatDuration(value("total_seconds"))}`,
+        `Cofres abiertos: ${value("total_chests_opened")}`,
+        `Eliminaciones: ${value("total_kills")}`
+      ];
+    } else {
+      details = [
+        `${value("games_played")} partidas`,
+        `${value("wins")} victorias`,
+        `${value("total_kills")} bajas`,
+        `Mejor puntuación: ${value("best_score")}`
+      ];
+    }
     card.append(heading);
     details.forEach((detail) => {
       const line = document.createElement("p");

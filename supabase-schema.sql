@@ -54,12 +54,17 @@ create table if not exists public.game_sessions (
   game_id text not null check (char_length(game_id) between 1 and 80),
   duration_seconds integer not null default 0 check (duration_seconds between 0 and 86400),
   kills integer not null default 0 check (kills between 0 and 100000),
+  chests_opened integer not null default 0 check (chests_opened between 0 and 100000),
   score integer not null default 0 check (score between 0 and 1000000000),
   won boolean not null default false,
   placement integer check (placement between 1 and 10000),
   round_reached integer check (round_reached between 1 and 10000),
   created_at timestamptz not null default now()
 );
+
+alter table public.game_sessions
+  add column if not exists chests_opened integer not null default 0
+  check (chests_opened between 0 and 100000);
 
 create index if not exists game_sessions_user_created_idx
   on public.game_sessions (user_id, created_at desc);
@@ -78,7 +83,9 @@ create policy "Users can add their own game sessions"
 
 grant select, insert on public.game_sessions to authenticated;
 
-create or replace function public.get_my_game_stats()
+drop function if exists public.get_my_game_stats();
+
+create function public.get_my_game_stats()
 returns table (
   game_id text,
   games_played bigint,
@@ -86,7 +93,9 @@ returns table (
   total_kills bigint,
   total_score bigint,
   wins bigint,
-  best_score integer
+  best_score integer,
+  best_round integer,
+  total_chests_opened bigint
 )
 language sql
 stable
@@ -100,7 +109,9 @@ as $$
     coalesce(sum(sessions.kills), 0) as total_kills,
     coalesce(sum(sessions.score), 0) as total_score,
     count(*) filter (where sessions.won) as wins,
-    coalesce(max(sessions.score), 0)::integer as best_score
+    coalesce(max(sessions.score), 0)::integer as best_score,
+    coalesce(max(sessions.round_reached), 0)::integer as best_round,
+    coalesce(sum(sessions.chests_opened), 0) as total_chests_opened
   from public.game_sessions as sessions
   where sessions.user_id = (select auth.uid())
   group by sessions.game_id

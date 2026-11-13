@@ -32,6 +32,7 @@ window.ARCADE_ACCOUNT = (() => {
       game_id: gameId,
       duration_seconds: result.durationSeconds,
       kills: result.kills,
+      chests_opened: result.chestsOpened,
       score: result.score,
       won: result.won,
       placement: result.placement,

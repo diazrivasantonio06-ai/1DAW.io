@@ -422,7 +422,7 @@ function over(){
   if(state==="over")return;
   state="over";
   if(kills>best){best=kills;try{localStorage.setItem("zombis3d-best",String(best))}catch(e){}}
-  if(window.parent!==window)window.parent.postMessage({type:"1daw:game-result",gameId:"claude-of-duty",result:{durationSeconds:Math.floor(t),kills,score:pts,won:false,placement:null,roundReached:round}},location.origin);
+  if(window.parent!==window)window.parent.postMessage({type:"1daw:game-result",gameId:"claude-of-duty",result:{durationSeconds:Math.floor(t),kills,chestsOpened:0,score:pts,won:false,placement:null,roundReached:round}},location.origin);
   veil("Te han devorado","Llegaste a la <b>ronda "+round+"</b>. Abatiste a <b>"+kills+"</b> zombis, abriste <b>"+doors.filter(d=>d.open).length+"</b> de 4 puertas y aguantaste "+Math.floor(t)+" segundos.<br>Récord: <b>"+best+"</b> bajas.","Intentarlo otra vez",false);
 }
 $("#go").onclick=()=>{state==="pause"?pause():start()};

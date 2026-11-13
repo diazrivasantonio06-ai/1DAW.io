@@ -25,7 +25,7 @@ const WP=[
 {n:'Lanzacohetes',e:'🚀',t:'Explosivo (área)',d:55,r:1.5,s:460,g:900,p:1,sp:0,c:'#ff4d6d',aoe:100}];
 const MAT=[{n:'Madera',c:'#a0693a',hp:100},{n:'Piedra',c:'#8a929c',hp:200},{n:'Metal',c:'#5aa0d8',hp:350}];
 const PH=[[40,40,1300,2],[30,30,700,4],[25,25,350,6],[20,25,80,9]];
-let P,E,obs,houses=[],ramps=[],chests,walls,bul,fx,Z,msgs,state='menu',kills,keys={},mx=0,my=0,md=0,T=0,wonP=0;
+let P,E,obs,houses=[],ramps=[],chests,walls,bul,fx,Z,msgs,state='menu',kills,keys={},mx=0,my=0,md=0,T=0,wonP=0,chestsOpened=0;
 function rr(){const q=Math.random();return q<.55?0:q<.82?1:q<.95?2:3}
 const CONS=[{n:'Vendaje',e:'🩹',hp:25,sh:0,c:'#e8e8e8'},{n:'Botiquín',e:'🧰',hp:75,sh:0,c:'#ff6b6b'},{n:'Poción de escudo',e:'🧪',hp:0,sh:25,c:'#6bb8ff'},{n:'Gran poción de escudo',e:'💙',hp:0,sh:50,c:'#4a7cff'}];
 function roll(){if(Math.random()<.58)return{t:'w',i:Math.floor(Math.random()*WP.length),r:rr()};const q=Math.random();return{t:'c',i:q<.4?0:q<.55?1:q<.88?2:3,r:0}}
@@ -44,7 +44,7 @@ function ramp(e){const c=10;if(e.m[e.mat]<c){if(e.pl)msg('Te faltan materiales (
  e.m[e.mat]-=c;ramps.push({x:gx,y:gy,dir:((Math.round(e.a/(Math.PI/2))%4)+4)%4,hp:MAT[e.mat].hp,mx:MAT[e.mat].hp,mat:e.mat})}
 function mk(pl,name){let x,y;do{x=rnd(120,M-120);y=rnd(120,M-120)}while(blocked(x,y,20));
  return{x,y,hp:100,pl,name,sl:[{pick:1},null,null,null,null,null],cur:0,m:[0,0,0],mat:0,burn:0,bd:0,slow:0,sh:0,z:0,vz:0,gd:1,mv:0,cl:new THREE.Color().setHSL(Math.random(),.6,.5).getHex(),cd:0,al:1,t:0,gx:x,gy:y,a:0,ws:0}}
-function init0(){obs=[];walls=[];ramps=[];bul=[];fx=[];msgs=[];kills=0;wonP=0;T=0;
+function init0(){obs=[];walls=[];ramps=[];bul=[];fx=[];msgs=[];kills=0;wonP=0;T=0;chestsOpened=0;
  for(let i=0;i<580;i++)obs.push({x:rnd(60,M-60),y:rnd(60,M-60),r:18,hp:5,t:0});
  for(let i=0;i<200;i++)obs.push({x:rnd(60,M-60),y:rnd(60,M-60),r:22,hp:5,t:1});
  for(let i=0;i<118;i++)obs.push({x:rnd(60,M-60),y:rnd(60,M-60),r:20,hp:5,t:2});
@@ -116,7 +116,7 @@ function ai(e,dt){e.t-=dt;e.ws-=dt;
 function upd(dt){T+=dt;zup(dt);
  for(const e of E){if(!e.al)continue;e.mv=0;phys(e,dt);e.cd-=dt;if(e.slow>0)e.slow-=dt;if(e.burn>0){e.burn-=dt;dmg(e,e.bd*dt,e.bo)}
   if(D(e.x,e.y,Z.cx,Z.cy)>Z.r)dmg(e,PH[Math.min(Z.i,3)][3]*dt);
-  for(let i=chests.length-1;i>=0;i--){const c=chests[i];if(c.nt>T)continue;if(!e.pl&&!e.sl.some((v,k)=>k>0&&!v))continue;if(Math.abs(c.x-e.x)<32&&Math.abs(c.y-e.y)<32){give(e,c);chests.splice(i,1)}}
+  for(let i=chests.length-1;i>=0;i--){const c=chests[i];if(c.nt>T)continue;if(!e.pl&&!e.sl.some((v,k)=>k>0&&!v))continue;if(Math.abs(c.x-e.x)<32&&Math.abs(c.y-e.y)<32){if(e.pl&&!c.d)chestsOpened++;give(e,c);chests.splice(i,1)}}
   if(!e.pl)ai(e,dt)}
  if(P.al){let dx=(keys.d?1:0)-(keys.a?1:0),dy=(keys.s?1:0)-(keys.w?1:0);const l=Math.hypot(dx,dy)||1;move(P,dx/l,dy/l,dt);
   P.a=aimAng();
@@ -165,7 +165,7 @@ function hud(){X.font='600 15px system-ui';X.textBaseline='middle';
  X.textAlign='right';msgs.forEach((m,i)=>{X.fillStyle=m.c;X.fillText(m.t,W-14,H-30-i*22)});
  if(P.al&&D(P.x,P.y,Z.cx,Z.cy)>Z.r){X.textAlign='center';X.fillStyle='#e0b3ff';X.fillText('¡Estás en la tormenta! Vuelve a la zona segura',W/2,70)}}
 function end0(){const won=state==='win',placement=won?1:E.filter(e=>e.al).length+1;
- if(window.parent!==window)window.parent.postMessage({type:'1daw:game-result',gameId:'Claude-nite',result:{durationSeconds:Math.floor(T),kills,score:kills,won,placement,roundReached:null}},location.origin);
+ if(window.parent!==window)window.parent.postMessage({type:'1daw:game-result',gameId:'Claude-nite',result:{durationSeconds:Math.floor(T),kills,chestsOpened,score:kills,won,placement,roundReached:null}},location.origin);
  ov.style.display='flex';const b=ov.firstChild;
  b.innerHTML=state==='win'?'<h1>🏆 ¡Victoria Royale!</h1><p>Eres el último superviviente.</p><p>Bajas: '+kills+'</p><p><input id="nm" maxlength="14" value="'+PN+'"></p><button id="go">Jugar otra vez</button>':'<h1>💀 Eliminado</h1><p>Quedabas en el puesto #'+(E.filter(e=>e.al).length+1)+'.</p><p>Bajas: '+kills+'</p><p><input id="nm" maxlength="14" value="'+PN+'"></p><button id="go">Reintentar</button>';
  document.getElementById('go').onclick=start}
