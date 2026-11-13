@@ -16,11 +16,21 @@ function renderGames() {
     const art = document.createElement("span");
     art.className = "art";
     art.style.setProperty("--c", game.color || "#39344f");
-    const emoji = document.createElement("span");
-    emoji.className = "emoji";
-    emoji.setAttribute("aria-hidden", "true");
-    emoji.textContent = game.emoji || "🎮";
-    art.append(emoji);
+    if (game.cover) {
+      art.classList.add("has-cover");
+      const cover = document.createElement("img");
+      cover.className = "cover-image";
+      cover.src = game.cover;
+      cover.alt = "";
+      cover.loading = "lazy";
+      art.append(cover);
+    } else {
+      const emoji = document.createElement("span");
+      emoji.className = "emoji";
+      emoji.setAttribute("aria-hidden", "true");
+      emoji.textContent = game.emoji || "🎮";
+      art.append(emoji);
+    }
 
     const info = document.createElement("span");
     info.className = "cart-info";

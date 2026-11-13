@@ -39,6 +39,9 @@
     .art::before, .art::after { position: absolute; content: ""; border: 1px solid rgb(255 255 255 / 19%); transform: rotate(28deg); }
     .art::before { width: 240px; height: 100px; }
     .art::after { width: 180px; height: 260px; }
+    .art.has-cover { background: #fff; }
+    .art.has-cover::before, .art.has-cover::after { display: none; }
+    .cover-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
     .emoji { z-index: 1; font-size: 5rem; filter: drop-shadow(0 8px 10px rgb(0 0 0 / 35%)); }
     .cart-info { display: flex; flex: 1; flex-direction: column; align-items: flex-start; padding: 1.1rem 1.2rem 1.3rem; }
     .cart-title { font-size: 1.2rem; font-weight: 700; }
