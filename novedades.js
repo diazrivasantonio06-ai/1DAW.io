@@ -23,6 +23,14 @@ const UPDATES = [
     date: "2026-11-13",
     title: "Pre-Alpha 3.5",
     changes: ["Mejoras visuales", "Corrección de errores", "Optimización del rendimiento"]
+  },
+
+  {
+    game: "Patata Espacial",
+    version: "1.0",
+    date: "2026-11-14",
+    title: "Versión 1.0",
+    changes: ["Nuevas armas", "Nuevos objetos", "Nuevos logros desbloqueables divididos en rarezas", "Nuevo modo infinito", "Musica en el inicio", "Mejoras en el sistema de puntuación", "Corrección de errores"]
   }
 ];
 
