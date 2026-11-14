@@ -1285,4 +1285,479 @@ begin
 end;
 $$;
 
+create table if not exists public.game_lobbies (
+  id uuid primary key default gen_random_uuid(),
+  game_id text not null default 'patata-espacial' check (game_id = 'patata-espacial'),
+  host_id uuid not null references auth.users (id) on delete cascade,
+  status text not null default 'waiting' check (status in ('waiting', 'started', 'closed')),
+  max_players smallint not null default 3 check (max_players = 3),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.game_lobby_members (
+  lobby_id uuid not null references public.game_lobbies (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  character_id text not null default 'patata' check (character_id = 'patata'),
+  joined_at timestamptz not null default now(),
+  primary key (lobby_id, user_id)
+);
+
+create table if not exists public.game_lobby_invites (
+  lobby_id uuid not null references public.game_lobbies (id) on delete cascade,
+  inviter_id uuid not null references auth.users (id) on delete cascade,
+  invited_user_id uuid not null references auth.users (id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'declined', 'cancelled')),
+  created_at timestamptz not null default now(),
+  primary key (lobby_id, invited_user_id),
+  check (inviter_id <> invited_user_id)
+);
+
+create index if not exists game_lobby_members_user_idx
+  on public.game_lobby_members (user_id, joined_at desc);
+create index if not exists game_lobby_invites_user_idx
+  on public.game_lobby_invites (invited_user_id, created_at desc)
+  where status = 'pending';
+
+alter table public.game_lobbies enable row level security;
+alter table public.game_lobby_members enable row level security;
+alter table public.game_lobby_invites enable row level security;
+
+create or replace function public.is_game_lobby_member(p_lobby_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.game_lobby_members as member
+    where member.lobby_id = p_lobby_id
+      and member.user_id = auth.uid()
+  );
+$$;
+
+revoke all on function public.is_game_lobby_member(uuid) from public, anon, authenticated;
+grant execute on function public.is_game_lobby_member(uuid) to authenticated;
+
+drop policy if exists "Lobby members and invitees can read lobbies" on public.game_lobbies;
+create policy "Lobby members and invitees can read lobbies"
+  on public.game_lobbies for select to authenticated
+  using (
+    public.is_game_lobby_member(id)
+    or exists (
+      select 1
+      from public.game_lobby_invites as invite
+      where invite.lobby_id = id
+        and invite.invited_user_id = (select auth.uid())
+        and invite.status = 'pending'
+    )
+  );
+
+drop policy if exists "Lobby members can read members" on public.game_lobby_members;
+create policy "Lobby members can read members"
+  on public.game_lobby_members for select to authenticated
+  using (public.is_game_lobby_member(lobby_id));
+
+drop policy if exists "Invite participants can read invites" on public.game_lobby_invites;
+create policy "Invite participants can read invites"
+  on public.game_lobby_invites for select to authenticated
+  using (
+    inviter_id = (select auth.uid())
+    or invited_user_id = (select auth.uid())
+  );
+
+revoke all on public.game_lobbies, public.game_lobby_members, public.game_lobby_invites
+  from public, anon, authenticated;
+grant select on public.game_lobbies, public.game_lobby_members, public.game_lobby_invites
+  to authenticated;
+
+create or replace function public.create_game_lobby()
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_lobby_id uuid;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user_id::text, 0));
+
+  select lobby.id into v_lobby_id
+  from public.game_lobbies as lobby
+  join public.game_lobby_members as member on member.lobby_id = lobby.id
+  where member.user_id = v_user_id
+    and lobby.status = 'waiting'
+  order by lobby.created_at desc
+  limit 1;
+  if v_lobby_id is not null then
+    return v_lobby_id;
+  end if;
+
+  insert into public.game_lobbies (host_id) values (v_user_id)
+  returning id into v_lobby_id;
+  insert into public.game_lobby_members (lobby_id, user_id)
+  values (v_lobby_id, v_user_id);
+  return v_lobby_id;
+end;
+$$;
+
+create or replace function public.get_my_game_lobby()
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select lobby.id
+  from public.game_lobbies as lobby
+  join public.game_lobby_members as member on member.lobby_id = lobby.id
+  where member.user_id = auth.uid()
+    and lobby.status = 'waiting'
+  order by lobby.created_at desc
+  limit 1;
+$$;
+
+create or replace function public.get_my_game_lobby_invites()
+returns table (
+  lobby_id uuid,
+  inviter_id uuid,
+  inviter_name text,
+  created_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+
+  return query
+    select invite.lobby_id, invite.inviter_id, profile.display_name, invite.created_at
+    from public.game_lobby_invites as invite
+    join public.game_lobbies as lobby on lobby.id = invite.lobby_id
+    join public.profiles as profile on profile.id = invite.inviter_id
+    where invite.invited_user_id = v_user_id
+      and invite.status = 'pending'
+      and lobby.status = 'waiting'
+    order by invite.created_at desc;
+end;
+$$;
+
+create or replace function public.get_game_lobby_details(p_lobby_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_lobby public.game_lobbies%rowtype;
+  v_members jsonb;
+  v_invites jsonb;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  if not public.is_game_lobby_member(p_lobby_id) then
+    raise exception 'No perteneces a esta sala.' using errcode = '42501';
+  end if;
+
+  select * into v_lobby
+  from public.game_lobbies as lobby
+  where lobby.id = p_lobby_id;
+  if not found then
+    raise exception 'La sala no existe.';
+  end if;
+
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'userId', member.user_id,
+        'name', profile.display_name,
+        'avatarId', profile.avatar_id,
+        'characterId', member.character_id,
+        'isHost', member.user_id = v_lobby.host_id,
+        'joinedAt', member.joined_at
+      ) order by member.joined_at
+    ),
+    '[]'::jsonb
+  ) into v_members
+  from public.game_lobby_members as member
+  join public.profiles as profile on profile.id = member.user_id
+  where member.lobby_id = p_lobby_id;
+
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'userId', invite.invited_user_id,
+        'name', profile.display_name,
+        'createdAt', invite.created_at
+      ) order by invite.created_at
+    ),
+    '[]'::jsonb
+  ) into v_invites
+  from public.game_lobby_invites as invite
+  join public.profiles as profile on profile.id = invite.invited_user_id
+  where invite.lobby_id = p_lobby_id
+    and invite.status = 'pending';
+
+  return jsonb_build_object(
+    'id', v_lobby.id,
+    'hostId', v_lobby.host_id,
+    'status', v_lobby.status,
+    'maxPlayers', v_lobby.max_players,
+    'members', v_members,
+    'invites', case when v_lobby.host_id = v_user_id then v_invites else '[]'::jsonb end
+  );
+end;
+$$;
+
+create or replace function public.invite_game_lobby_friend(p_lobby_id uuid, p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_lobby public.game_lobbies%rowtype;
+  v_members integer;
+  v_pending_invites integer;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  if p_user_id is null or p_user_id = v_user_id then
+    raise exception 'Jugador no válido.';
+  end if;
+
+  select * into v_lobby
+  from public.game_lobbies as lobby
+  where lobby.id = p_lobby_id
+  for update;
+  if not found or v_lobby.host_id <> v_user_id then
+    raise exception 'Solo quien creó la sala puede invitar.';
+  end if;
+  if v_lobby.status <> 'waiting' then
+    raise exception 'La sala ya no acepta invitaciones.';
+  end if;
+  if not exists (
+    select 1
+    from public.friendships as friendship
+    where friendship.user_a = least(v_user_id, p_user_id)
+      and friendship.user_b = greatest(v_user_id, p_user_id)
+  ) then
+    raise exception 'Solo puedes invitar a amigos agregados en la web.';
+  end if;
+  if exists (
+    select 1 from public.game_lobby_members as member
+    where member.lobby_id = p_lobby_id and member.user_id = p_user_id
+  ) then
+    raise exception 'Ese amigo ya está en la sala.';
+  end if;
+  if exists (
+    select 1 from public.game_lobby_invites as invite
+    where invite.lobby_id = p_lobby_id
+      and invite.invited_user_id = p_user_id
+      and invite.status = 'pending'
+  ) then
+    return;
+  end if;
+
+  select count(*) into v_members
+  from public.game_lobby_members as member
+  where member.lobby_id = p_lobby_id;
+  select count(*) into v_pending_invites
+  from public.game_lobby_invites as invite
+  where invite.lobby_id = p_lobby_id and invite.status = 'pending';
+  if v_members + v_pending_invites >= v_lobby.max_players then
+    raise exception 'La sala ya está llena o tiene todas sus plazas reservadas.';
+  end if;
+
+  insert into public.game_lobby_invites (lobby_id, inviter_id, invited_user_id)
+  values (p_lobby_id, v_user_id, p_user_id)
+  on conflict (lobby_id, invited_user_id)
+  do update set inviter_id = excluded.inviter_id, status = 'pending', created_at = now();
+end;
+$$;
+
+create or replace function public.respond_game_lobby_invite(p_lobby_id uuid, p_accept boolean)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_lobby public.game_lobbies%rowtype;
+  v_members integer;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user_id::text, 0));
+
+  select lobby.* into v_lobby
+  from public.game_lobbies as lobby
+  join public.game_lobby_invites as invite on invite.lobby_id = lobby.id
+  where lobby.id = p_lobby_id
+    and invite.invited_user_id = v_user_id
+    and invite.status = 'pending'
+  for update of lobby;
+  if not found then
+    raise exception 'La invitación ya no está disponible.';
+  end if;
+  if not p_accept then
+    update public.game_lobby_invites
+    set status = 'declined'
+    where lobby_id = p_lobby_id and invited_user_id = v_user_id;
+    return;
+  end if;
+  if v_lobby.status <> 'waiting' then
+    raise exception 'La sala ya no está disponible.';
+  end if;
+  if exists (
+    select 1
+    from public.game_lobby_members as member
+    join public.game_lobbies as lobby on lobby.id = member.lobby_id
+    where member.user_id = v_user_id
+      and lobby.status = 'waiting'
+      and member.lobby_id <> p_lobby_id
+  ) then
+    raise exception 'Ya perteneces a otra sala abierta.';
+  end if;
+
+  select count(*) into v_members
+  from public.game_lobby_members as member
+  where member.lobby_id = p_lobby_id;
+  if v_members >= v_lobby.max_players then
+    raise exception 'La sala ya está llena.';
+  end if;
+
+  insert into public.game_lobby_members (lobby_id, user_id)
+  values (p_lobby_id, v_user_id)
+  on conflict (lobby_id, user_id) do nothing;
+  update public.game_lobby_invites
+  set status = 'accepted'
+  where lobby_id = p_lobby_id and invited_user_id = v_user_id;
+end;
+$$;
+
+create or replace function public.leave_game_lobby(p_lobby_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_host_id uuid;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  select host_id into v_host_id
+  from public.game_lobbies
+  where id = p_lobby_id and public.is_game_lobby_member(id)
+  for update;
+  if not found then
+    raise exception 'No perteneces a esta sala.';
+  end if;
+
+  if v_host_id = v_user_id then
+    update public.game_lobbies set status = 'closed' where id = p_lobby_id;
+    update public.game_lobby_invites
+    set status = 'cancelled'
+    where lobby_id = p_lobby_id and status = 'pending';
+  else
+    delete from public.game_lobby_members
+    where lobby_id = p_lobby_id and user_id = v_user_id;
+    update public.game_lobby_invites
+    set status = 'declined'
+    where lobby_id = p_lobby_id and invited_user_id = v_user_id;
+  end if;
+end;
+$$;
+
+create or replace function public.cancel_game_lobby_invite(p_lobby_id uuid, p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  if not exists (
+    select 1
+    from public.game_lobbies as lobby
+    join public.game_lobby_invites as invite on invite.lobby_id = lobby.id
+    where lobby.id = p_lobby_id
+      and lobby.host_id = v_user_id
+      and lobby.status = 'waiting'
+      and invite.invited_user_id = p_user_id
+      and invite.status = 'pending'
+  ) then
+    raise exception 'La invitación ya no está pendiente.';
+  end if;
+
+  update public.game_lobby_invites
+  set status = 'cancelled'
+  where lobby_id = p_lobby_id
+    and invited_user_id = p_user_id
+    and status = 'pending';
+end;
+$$;
+
+revoke all on function public.create_game_lobby() from public, anon, authenticated;
+revoke all on function public.get_my_game_lobby() from public, anon, authenticated;
+revoke all on function public.get_my_game_lobby_invites() from public, anon, authenticated;
+revoke all on function public.get_game_lobby_details(uuid) from public, anon, authenticated;
+revoke all on function public.invite_game_lobby_friend(uuid, uuid) from public, anon, authenticated;
+revoke all on function public.respond_game_lobby_invite(uuid, boolean) from public, anon, authenticated;
+revoke all on function public.leave_game_lobby(uuid) from public, anon, authenticated;
+revoke all on function public.cancel_game_lobby_invite(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.create_game_lobby() to authenticated;
+grant execute on function public.get_my_game_lobby() to authenticated;
+grant execute on function public.get_my_game_lobby_invites() to authenticated;
+grant execute on function public.get_game_lobby_details(uuid) to authenticated;
+grant execute on function public.invite_game_lobby_friend(uuid, uuid) to authenticated;
+grant execute on function public.respond_game_lobby_invite(uuid, boolean) to authenticated;
+grant execute on function public.leave_game_lobby(uuid) to authenticated;
+grant execute on function public.cancel_game_lobby_invite(uuid, uuid) to authenticated;
+
+do $$
+declare
+  v_table text;
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    foreach v_table in array array['game_lobbies', 'game_lobby_members', 'game_lobby_invites'] loop
+      if not exists (
+        select 1 from pg_publication_tables
+        where pubname = 'supabase_realtime'
+          and schemaname = 'public'
+          and tablename = v_table
+      ) then
+        execute format('alter publication supabase_realtime add table public.%I', v_table);
+      end if;
+    end loop;
+  end if;
+end;
+$$;
+
 notify pgrst, 'reload schema';
