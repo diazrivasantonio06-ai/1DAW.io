@@ -282,7 +282,51 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 .prf-st{display:flex;flex-direction:column;gap:2px;padding:8px 10px;background:#fff;border:3px solid var(--line);border-radius:12px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.1)}
 .prf-st span{font:600 11px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .prf-st b{font:700 22px/1.1 var(--font)}
+
+/* ---------- pantalla de carga ---------- */
+#loader{position:fixed;inset:0;z-index:999;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  padding:max(24px,env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(24px,env(safe-area-inset-left,0px));
+  background:linear-gradient(#7ec8ff 0,#7ec8ff 62%,#4db84d 62%,#4db84d 100%);color:var(--ink);overflow:hidden;transition:opacity .5s ease,visibility .5s;touch-action:none}
+#loader.done{opacity:0;visibility:hidden;pointer-events:none}
+#loader::before{content:"";position:absolute;left:0;right:0;top:calc(62% - 9px);height:9px;pointer-events:none;
+  background:radial-gradient(ellipse 8px 4.2px at 50% 100%,#72d672 0 98%,transparent 100%) 0 0/26px 9px repeat-x}
+.ld-cloud{position:absolute;height:26px;background:#fff;border:3px solid var(--line);border-radius:14px;opacity:.9;animation:ldCloud 28s linear infinite}
+.ld-cloud::before{content:"";position:absolute;left:14px;top:-16px;width:34px;height:18px;background:#fff;border:3px solid var(--line);border-bottom:0;border-radius:12px 12px 0 0}
+.ld-cloud.c1{top:12%;width:90px;left:-120px}
+.ld-cloud.c2{top:26%;width:120px;left:-160px;animation-duration:38s;animation-delay:-14s}
+@keyframes ldCloud{to{transform:translateX(calc(100vw + 320px))}}
+.ld-stack{position:relative;z-index:1;width:150px;height:140px;margin-bottom:6px}
+.lb{position:absolute;left:50%;width:132px;height:40px;margin-left:-66px;box-sizing:border-box;border:3px solid var(--line);border-radius:6px;
+  box-shadow:inset 0 -4px 0 rgba(0,0,0,.2),inset 0 3px 0 rgba(255,255,255,.38);opacity:0;animation:lbDrop 2.4s cubic-bezier(.3,.9,.4,1) infinite}
+.lb::before{content:"";position:absolute;left:10px;right:10px;top:-9px;height:9px;
+  background:radial-gradient(ellipse 8px 4.2px at 50% 100%,var(--stud) 0 98%,transparent 100%) 0 0/26px 9px repeat-x}
+.lb.a{bottom:0;background:var(--red);--stud:var(--red-lo)}
+.lb.b{bottom:40px;background:var(--blue);--stud:var(--blue-lo);animation-delay:.3s}
+.lb.c{bottom:80px;background:var(--yellow);--stud:var(--yellow-lo);animation-delay:.6s}
+@keyframes lbDrop{0%{transform:translateY(-150px);opacity:0}12%{opacity:1}30%,84%{transform:none;opacity:1}100%{transform:none;opacity:0}}
+.ld-title{position:relative;z-index:1;margin:0;text-align:center;font:700 clamp(34px,9vw,52px)/1 var(--font);letter-spacing:.02em;text-transform:uppercase;color:var(--yellow);
+  -webkit-text-stroke:8px var(--ink);paint-order:stroke fill;text-shadow:0 5px 0 var(--ink)}
+.ld-title span{display:block}
+.ld-beta{position:relative;z-index:1;margin-top:-6px}
+.ld-bar{position:relative;z-index:1;width:min(320px,80vw);height:30px;box-sizing:border-box;border:3px solid var(--line);border-radius:10px;background:var(--paper);overflow:hidden;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.12)}
+#ld-fill{height:100%;width:0;background:repeating-linear-gradient(-45deg,var(--yellow) 0 12px,var(--yellow-hi) 12px 24px);background-size:34px 100%;
+  border-right:3px solid var(--line);box-sizing:border-box;transition:width .35s ease;animation:ldStripes 1s linear infinite}
+@keyframes ldStripes{to{background-position:34px 0}}
+#ld-pct{position:absolute;inset:0;display:grid;place-items:center;font:700 15px var(--font);color:var(--ink);text-shadow:0 1px 0 rgba(255,255,255,.7)}
+#ld-txt{position:relative;z-index:1;margin:0;min-height:1.3em;text-align:center;font:600 16px var(--font);color:var(--ink);background:var(--paper);border:3px solid var(--line);border-radius:999px;padding:3px 16px}
+@media (prefers-reduced-motion:reduce){.lb{animation:none;opacity:1}.ld-cloud{animation:none;left:10%}#ld-fill{animation:none}#loader{transition:none}}
 </style>
+
+<div id="loader" role="status" aria-live="polite" aria-label="Cargando Duelo de Torres">
+  <i class="ld-cloud c1"></i><i class="ld-cloud c2"></i>
+  <div class="ld-stack" aria-hidden="true"><i class="lb a"></i><i class="lb b"></i><i class="lb c"></i></div>
+  <h1 class="ld-title"><span>Duelo</span><span>de Torres</span></h1>
+  <span class="chip ld-beta">Beta</span>
+  <div class="ld-bar" aria-hidden="true"><div id="ld-fill"></div><span id="ld-pct" class="num">0%</span></div>
+  <p id="ld-txt">Cargando…</p>
+</div>
+<script>setTimeout(function(){var l=document.getElementById('loader');if(l&&!l.classList.contains('done')){document.getElementById('ld-txt').textContent='Tarda más de lo normal. Revisa tu conexión y recarga.';}},12000);</script>
 
 <div id="app">
   <header class="hud"><div class="band-in hud-in">
@@ -471,7 +515,7 @@ const YEL=0xf2cd37, GRAY=0x6d6e5c, TAN=0xd9c9a3;
 
 /* ---------- save (per-viewer convenience) ---------- */
 const KEY='duelo-torres-v2';
-const save={tro:0,best:0,wins:0,losses:0,arena:0,chestW:0,chestG:0,passXp:0,passClaimed:0,deck:255};
+const save={tro:0,best:0,wins:0,losses:0,arena:0,chestW:0,chestG:0,passXp:0,passClaimed:0,passReal:-1,claimReal:-1,deck:255};
 let savedObj=null;
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object'){savedObj=s;for(const k in save)if(typeof s[k]==='number'&&isFinite(s[k]))save[k]=s[k];}}catch(e){}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(save));}catch(e){}}
@@ -512,6 +556,16 @@ ICON.bomber='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="14.
 /* pase de batalla gratis: 10 niveles; la tropa nueva está a mitad (nivel 5) */
 const PASS_N=10, PASS_XP=40;
 const PASSR=[{t:'w',n:1},{t:'w',n:1},{t:'g',n:1},{t:'w',n:2},{troop:'bomber'},{t:'w',n:2},{t:'g',n:1},{t:'w',n:2},{t:'g',n:1},{t:'g',n:2}];
+/* ===== MODO PRUEBA DEL PASE =====
+   true  = pase completo (10/10) para reclamar y testear.
+   false = vuelve a tu progreso real (se restaura solo la próxima vez que abras el juego). */
+const TEST_FULL_PASS=false;
+if(TEST_FULL_PASS){
+  if(save.passReal<0){save.passReal=save.passXp;save.claimReal=save.passClaimed;}
+  save.passXp=PASS_N*PASS_XP;persist();
+}else if(save.passReal>=0){
+  save.passXp=save.passReal;save.passClaimed=save.claimReal;save.passReal=-1;save.claimReal=-1;persist();
+}
 function ownsCard(id){const i=PASSR.findIndex(r=>r.troop===id);return i<0||((save.passClaimed>>i)&1)===1;}
 const AIDECK=ALL.filter(id=>!CARDS[id].pass);
 const OWNED=[],DECK=[]; /* OWNED = cartas desbloqueadas; DECK = tu mazo de 8 */
@@ -600,14 +654,17 @@ function passReady(){let n=0;for(let i=0;i<passTier();i++)if(!isClaimed(i))n++;r
 function addPassXp(n){const b=passTier();save.passXp=Math.min(PASS_N*PASS_XP,save.passXp+n);return passTier()-b;}
 function updPass(){
   const t=passTier(),r=passReady();
-  $('pb-tier').textContent=t;$('pb-txt').textContent=t+'/'+PASS_N;
-  $('pb-fill').style.width=Math.round(save.passXp/(PASS_N*PASS_XP)*100)+'%';
+  /* la barra del menú muestra el progreso hacia el SIGUIENTE nivel (igual que dentro del pase); el círculo rojo es el nivel actual */
+  const inT=t>=PASS_N?PASS_XP:save.passXp-t*PASS_XP;
+  $('pb-tier').textContent=t;$('pb-txt').textContent=inT+'/'+PASS_XP;
+  $('pb-fill').style.width=Math.round(inT/PASS_XP*100)+'%';
+  $('btn-pass').setAttribute('aria-label','Abrir el Pase de batalla BETA. Nivel '+t+' de '+PASS_N+', '+inT+' de '+PASS_XP+' puntos para el siguiente');
   $('pb-dot').hidden=r<1;$('pb-dot').textContent=r;
 }
 function ppMsg(t){$('pp-msg').textContent=t;}
 function renderPass(){
   const t=passTier(),inT=t>=PASS_N?PASS_XP:save.passXp-t*PASS_XP;
-  $('pp-prog').innerHTML='<div class="r"><span>Nivel '+t+' de '+PASS_N+'</span><span class="num">'+(t>=PASS_N?'¡Pase completado!':inT+' / '+PASS_XP+' para el siguiente')+'</span></div><div class="bar"><i style="width:'+Math.round(inT/PASS_XP*100)+'%"></i></div>'
+  $('pp-prog').innerHTML='<div class="r"><span>Nivel '+t+' de '+PASS_N+'</span><span class="num">'+(t>=PASS_N?'¡Pase completado!':inT+' / '+PASS_XP+' puntos para el nivel '+(t+1))+'</span></div><div class="bar"><i style="width:'+Math.round(inT/PASS_XP*100)+'%"></i></div>'
     +'<small style="font:500 12px var(--font);color:var(--muted)">Gana puntos jugando: +20 si ganas, +12 si empatas y +8 si pierdes.</small>';
   $('pp-list').innerHTML=PASSR.map((r,i)=>{
     const done=isClaimed(i),ready=!done&&i<t,st=done?'done':ready?'ready':'lock',mid=r.troop;
@@ -650,16 +707,16 @@ const NEUTRAL={sky:0x2c3742,outer:0x2c3742,base:0x3a4652,stud:0x4a5766,lane:0x4a
 const ARENAS=[
   {name:'Pradera de Ladrillos',need:0,sky:0x7ec8ff,outer:0x237841,base:0x4db84d,stud:0x72d672,lane:0xe0c98a,laneStud:0xefdca4,wall:0xb4b4aa,bridge:0xb98a55,rail:0x8f2a1a,
    river:0x1f7fd6,wave:0xffffff,riverStud:0x8fd0ff,emis:0,hemi:[0xffffff,0x7ed957,.9],sun:[0xfff6d5,.95],deco:decoPrado},
-  {name:'Desierto Dorado',need:30,sky:0xf7dca0,outer:0xc29a4a,base:0xe6c06a,stud:0xf3d78d,lane:0xcb9d52,laneStud:0xdcb270,wall:0xc9a46a,bridge:0x8a5a2b,rail:0x5e3b1a,
+  {name:'Desierto Dorado',need:300,sky:0xf7dca0,outer:0xc29a4a,base:0xe6c06a,stud:0xf3d78d,lane:0xcb9d52,laneStud:0xdcb270,wall:0xc9a46a,bridge:0x8a5a2b,rail:0x5e3b1a,
    river:0x1fa6a0,wave:0xdffffb,riverStud:0x9fe8e0,emis:0,hemi:[0xfff2cf,0xc89a4b,.95],sun:[0xffe9b8,1],deco:decoDesierto},
-  {name:'Glaciar Helado',need:90,sky:0xcdeaff,outer:0x9cc6e2,base:0xe8f3fa,stud:0xffffff,lane:0xb9dcf0,laneStud:0xd6eefa,wall:0xaed2e8,bridge:0x6fb7e0,rail:0x2f6f9f,
+  {name:'Glaciar Helado',need:600,sky:0xcdeaff,outer:0x9cc6e2,base:0xe8f3fa,stud:0xffffff,lane:0xb9dcf0,laneStud:0xd6eefa,wall:0xaed2e8,bridge:0x6fb7e0,rail:0x2f6f9f,
    river:0x4fc0ea,wave:0xffffff,riverStud:0xcff2ff,emis:0,hemi:[0xeaf6ff,0x9ec4de,1],sun:[0xf4fbff,.85],deco:decoGlaciar},
-  {name:'Volcán Ardiente',need:180,sky:0x7a3b32,outer:0x2d2a2c,base:0x45444b,stud:0x5e5d66,lane:0x6b4a3a,laneStud:0x85604c,wall:0x2f2f34,bridge:0x5a3a2a,rail:0x2a1a14,
+  {name:'Volcán Ardiente',need:1000,sky:0x7a3b32,outer:0x2d2a2c,base:0x45444b,stud:0x5e5d66,lane:0x6b4a3a,laneStud:0x85604c,wall:0x2f2f34,bridge:0x5a3a2a,rail:0x2a1a14,
    river:0xff5a14,wave:0xffd27a,riverStud:0xffb02e,emis:0xff4a00,hemi:[0xffd2b0,0x552222,.85],sun:[0xffc59a,.95],deco:decoVolcan},
-  /* arenas de la tienda: se desbloquean con trofeos */
-  {name:'Bosque Otoñal',need:300,pv:0xe07a1f,sky:0xffd9a8,outer:0x8a4b1f,base:0xd08a3a,stud:0xe2a04e,lane:0xd9c28f,laneStud:0xe8d6a8,wall:0x9c6b3a,bridge:0x7a4a1f,rail:0x5a2f12,
+  /* arenas de la tienda. Trofeos necesarios = los de Clash Royale (0/300/600/1000/1300/1600/2000/2300/2600/3000) */
+  {name:'Bosque Otoñal',need:1300,pv:0xe07a1f,sky:0xffd9a8,outer:0x8a4b1f,base:0xd08a3a,stud:0xe2a04e,lane:0xd9c28f,laneStud:0xe8d6a8,wall:0x9c6b3a,bridge:0x7a4a1f,rail:0x5a2f12,
    river:0x2a8fbf,wave:0xffffff,riverStud:0x9fdcf0,emis:0,hemi:[0xfff0d8,0xa8642a,.95],sun:[0xffdfb0,.95],deco:decoOtono},
-  {name:'Noche Encantada',need:450,pv:0x6ad8ff,sky:0x1b1747,outer:0x1a1238,base:0x3a2f78,stud:0x5446a4,lane:0x5b4a96,laneStud:0x7765c0,wall:0x2b2260,bridge:0x4a3a86,rail:0x241a52,
+  {name:'Noche Encantada',need:1600,pv:0x6ad8ff,sky:0x1b1747,outer:0x1a1238,base:0x3a2f78,stud:0x5446a4,lane:0x5b4a96,laneStud:0x7765c0,wall:0x2b2260,bridge:0x4a3a86,rail:0x241a52,
    river:0x7a3cff,wave:0xd9c2ff,riverStud:0xb48aff,emis:0x5a2cff,hemi:[0xa99cff,0x2a1f55,.8],sun:[0xb9b0ff,.65],deco:decoNoche},
   /* próximamente: aparecen en el menú pero sin diseño visible */
   Object.assign({name:'Playa Tropical',need:Infinity,soon:true},NEUTRAL),
@@ -1130,7 +1187,7 @@ function resetMatch(){
   const d1=shuffle(DECK),d2=shuffle(AIDECK);
   hand=d1.slice(0,4);queue=d1.slice(4);
   game={time:DURATION,elixir:5,double:false};
-  ai={elixir:5,think:3,attackAt:6,hand:d2.slice(0,4),queue:d2.slice(4)};
+  ai={elixir:4,think:6,attackAt:8,k:aiTune(),hand:d2.slice(0,4),queue:d2.slice(4)};
   renderHand();updateHud(true);setGhost(false);
 }
 
@@ -1333,13 +1390,27 @@ function updateTower(t,dt){
 }
 
 /* ---------- rival ---------- */
+/* Dificultad de la CPU: crece con la arena que juegas (arena 1 = fácil, arena 6 = difícil).
+   Para ajustarla, cambia los valores de abajo: f va de 0 (arena 1) a 1 (arena 6). */
+function aiTune(){
+  const f=Math.min(5,Math.max(0,save.arena|0))/5;
+  return{
+    elx:.7+.2*f,          /* velocidad de elixir de la CPU (1 = igual que tú) */
+    tMin:2.2-.9*f,        /* segundos mínimos entre decisiones */
+    tRng:1.6-.3*f,        /* margen aleatorio extra entre decisiones */
+    react:.55+.3*f,       /* probabilidad de defender cuando atacas */
+    spell:.45+.35*f,      /* probabilidad de lanzar el hechizo si acierta a un grupo */
+    jit:2.6-1.4*f,        /* imprecisión al colocar defensas (más alto = más torpe) */
+    atk:8-2*f             /* elixir mínimo (aprox.) antes de lanzar un ataque */
+  };
+}
 function aiPlay(o,x,z){
   ai.elixir-=o.c.cost;spawnCard('e',o.id,x,z);
   const played=ai.hand[o.i];ai.hand[o.i]=ai.queue.shift();ai.queue.push(played);
 }
 function aiUpdate(dt){
   ai.think-=dt;if(ai.think>0)return;
-  ai.think=.9+Math.random()*1.3;
+  const K=ai.k;ai.think=K.tMin+Math.random()*K.tRng;
   const opts=ai.hand.map((id,i)=>({id,i,c:CARDS[id]})).filter(o=>o.c.cost<=ai.elixir);
   if(!opts.length)return;
   const threats=units.filter(u=>!u.dead&&u.team==='p'&&u.pos.z<-RH-.5&&!u.def.building);
@@ -1348,12 +1419,13 @@ function aiUpdate(dt){
     const th=threats[0];
     const cluster=threats.filter(o=>Math.hypot(o.pos.x-th.pos.x,o.pos.z-th.pos.z)<2.2);
     const spell=opts.find(o=>o.c.spell);
-    if(spell&&cluster.length>=3){aiPlay(spell,th.pos.x,th.pos.z);return;}
+    if(Math.random()>K.react)return;
+    if(spell&&cluster.length>=3&&Math.random()<K.spell){aiPlay(spell,th.pos.x+(Math.random()-.5)*K.jit,th.pos.z+(Math.random()-.5)*K.jit);return;}
     const defs=opts.filter(o=>!o.c.spell);
     if(defs.length){
       const o=defs[Math.floor(Math.random()*defs.length)];
       const z=Math.max(-12.8,Math.min(-(RH+1.2),th.pos.z-2.5));
-      aiPlay(o,Math.max(-XMAX,Math.min(XMAX,th.pos.x*.9)),z);return;
+      aiPlay(o,Math.max(-XMAX,Math.min(XMAX,th.pos.x*.9+(Math.random()-.5)*K.jit)),z);return;
     }
   }
   if(ai.elixir>=ai.attackAt||ai.elixir>=9.8){
@@ -1362,7 +1434,7 @@ function aiUpdate(dt){
     const o=atk[Math.floor(Math.random()*atk.length)];
     const lane=Math.random()<.5?-1:1;
     aiPlay(o,lane*BX+(Math.random()-.5)*1.6,-(RH+1.2+Math.random()*1.6));
-    ai.attackAt=5+Math.random()*4;
+    ai.attackAt=K.atk-1+Math.random()*4;
     return;
   }
   const cn=opts.find(o=>o.id==='cannon');
@@ -1737,7 +1809,7 @@ function update(dt){
   if(dbl&&!game.double){game.double=true;toast('¡Elixir doble!');}
   const rate=(dbl?2:1)/2.8;
   game.elixir=Math.min(10,game.elixir+rate*dt);
-  ai.elixir=Math.min(10,ai.elixir+rate*dt);
+  ai.elixir=Math.min(10,ai.elixir+rate*ai.k.elx*dt);
   aiUpdate(dt);
   for(const u of units)updateUnit(u,dt);
   separate();
@@ -1826,13 +1898,30 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 
-/* ---------- boot ---------- */
-buildWorld(ARENAS[save.arena]);
-makeThumbs();
-renderTroops();
-document.body.dataset.mode='home';
-resetMatch();showMenuScene();setTab('battle');refreshHome();fitCamera();
-requestAnimationFrame(frame);
+/* ---------- boot (con pantalla de carga) ---------- */
+const LD=$('loader'),LDF=$('ld-fill'),LDP=$('ld-pct'),LDT=$('ld-txt'),LD_MIN=2200,ldT0=performance.now();
+function ldSet(p,t){LDF.style.width=p+'%';LDP.textContent=p+'%';if(t)LDT.textContent=t;}
+const bootSteps=[
+  [10,'Construyendo la arena…',()=>buildWorld(ARENAS[save.arena])],
+  [45,'Colocando las piezas…',()=>makeThumbs()],
+  [70,'Reuniendo a las tropas…',()=>renderTroops()],
+  [90,'Preparando el campo de batalla…',()=>{document.body.dataset.mode='home';resetMatch();showMenuScene();setTab('battle');refreshHome();fitCamera();}]
+];
+function ldFinish(){
+  ldSet(100,'¡Listo para el duelo!');
+  const wait=Math.max(350,LD_MIN-(performance.now()-ldT0));
+  setTimeout(()=>{LD.classList.add('done');setTimeout(()=>LD.remove(),700);},wait);
+}
+function bootRun(i){
+  if(i>=bootSteps.length){requestAnimationFrame(frame);ldFinish();return;}
+  const st=bootSteps[i];ldSet(st[0],st[1]);
+  /* dejamos respirar al navegador para que pinte la barra antes del trabajo pesado */
+  setTimeout(()=>{
+    try{st[2]();}catch(err){console.error(err);LDT.textContent='Error al cargar. Recarga la página.';return;}
+    bootRun(i+1);
+  },60);
+}
+bootRun(0);
 })();
 </script>
 
