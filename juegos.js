@@ -68,6 +68,19 @@ function openGame(game) {
   accountStatus.textContent = "";
   frame.src = game.src;
   player.classList.add("open");
+  if (game.id === "duelo-de-torres") {
+    frame.style.maxWidth = "420px";
+    frame.style.margin = "0 auto";
+    frame.style.border = "4px solid #14202b";
+    frame.style.borderRadius = "12px";
+    frame.style.boxSizing = "border-box";
+  } else {
+    frame.style.maxWidth = "";
+    frame.style.margin = "";
+    frame.style.border = "";
+    frame.style.borderRadius = "";
+    frame.style.boxSizing = "";
+  }
   document.querySelector("#back").focus();
 }
 
