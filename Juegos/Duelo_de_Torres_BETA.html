@@ -604,11 +604,11 @@ const CARDS={
   yeti:{id:'yeti',name:'Yeti Helado',cost:5,css:'#6ab8ff',kind:'Tropa · Glaciar',desc:'Bestia de las nieves con muchísima vida que congela y aplasta a sus enemigos.',arenaChar:2,
     unit:{count:1,s:1.4,hp:1900,dmg:110,atk:1.4,speed:1.5,range:.4,aggro:5,h:1.8,skin:0xd0e8ff,extra:xColossus}},
   gargoyle:{id:'gargoyle',name:'Gárgola de Magma',cost:4,css:'#ff5a14',kind:'Tropa · Volcán',desc:'Monstruo de roca fundida que resiste ataques y lanza fuego en área.',arenaChar:3,
-    unit:{count:1,s:1.1,hp:850,dmg:130,atk:1.3,speed:2.0,range:3.5,aggro:5.5,h:1.7,ranged:true,proj:'magic',splash:1.0,extra:xMage}},
+    unit:{count:1,s:1.1,hp:850,dmg:130,atk:1.3,speed:2.0,range:3.5,aggro:5.5,h:1.7,ranged:true,proj:'magic',splash:1.0,skin:0x4a3d3a,extra:xGargoyle}},
   druid:{id:'druid',name:'Druida Otoñal',cost:4,css:'#3a9a48',kind:'Tropa · Bosque',desc:'Protector del bosque que canaliza magia curativa y de ataque.',arenaChar:4,
-    unit:{count:1,s:1.0,hp:520,dmg:95,atk:1.2,speed:2.2,range:4.0,aggro:5.5,h:1.8,ranged:true,proj:'magic',extra:xMage}},
+    unit:{count:1,s:1.0,hp:520,dmg:95,atk:1.2,speed:2.2,range:4.0,aggro:5.5,h:1.8,ranged:true,proj:'magic',extra:xDruid}},
   guard:{id:'guard',name:'Guardia Real',cost:3,css:'#2b2260',kind:'Tropa · Noche',desc:'Soldado élite de la noche con armadura impenetrable.',arenaChar:5,
-    unit:{count:1,s:1.0,hp:680,dmg:100,atk:1.1,speed:2.0,range:.4,aggro:5.5,h:1.75,extra:xSquire}}
+    unit:{count:1,s:1.0,hp:680,dmg:100,atk:1.1,speed:2.0,range:.4,aggro:5.5,h:1.75,extra:xGuard}}
 };
 
 const ALL=Object.keys(CARDS);
@@ -1185,6 +1185,56 @@ function xMage(f,p){
   f.add(box(.26,.16,.06,0xf5f5f5,0,.98,.2));f.add(box(.62,.7,.06,0x5b21b6,0,.78,-.2));
   p.armR.add(cyl(.035,.035,1.4,0x7a4a1f,0,-.2,.18,8));
   p.armR.add(ball(.12,0xe879f9,0,.55,.18,{emissive:0xe879f9,emissiveIntensity:.8}));
+}
+/* ---------- Arena 4-6: modelos propios ---------- */
+function xGargoyle(f,p){
+  const ROCK=0x3b3340,ROCK2=0x56495c,LAVA=0xff5a14,HOT={emissive:0xff4a00,emissiveIntensity:.95};
+  f.add(cyl(.29,.29,.14,ROCK,0,1.28,0,12));f.add(box(.36,.07,.3,ROCK2,0,1.37,0));
+  for(const sx of [-1,1]){
+    const h=cone(.08,.5,ROCK2,sx*.2,1.55,-.02,8);h.rotation.z=-sx*.55;f.add(h);
+    f.add(ball(.055,LAVA,sx*.37,1.77,-.02,HOT));
+    f.add(box(.34,.22,.38,ROCK,sx*.47,1.02,0));f.add(box(.18,.04,.26,LAVA,sx*.47,1.14,0,HOT));
+    const w=box(.07,.85,.5,ROCK,sx*.34,1.0,-.34);w.rotation.z=sx*.55;w.rotation.y=sx*.35;f.add(w);
+    const e=box(.05,.7,.06,LAVA,sx*.5,1.12,-.5,HOT);e.rotation.z=sx*.55;f.add(e);
+  }
+  f.add(box(.4,.4,.06,ROCK2,0,.76,.22));f.add(ball(.13,LAVA,0,.76,.27,HOT));
+  f.add(box(.5,.06,.1,LAVA,0,.52,.2,HOT));
+  const t=cone(.09,.55,ROCK2,0,.3,-.36,8);t.rotation.x=-1.15;f.add(t);f.add(ball(.07,LAVA,0,.1,-.62,HOT));
+  p.armR.add(ball(.16,LAVA,0,-.62,.2,HOT));
+  p.armR.add(cone(.09,.26,0xffd27a,0,-.4,.2,6,HOT));
+  p.armL.add(box(.2,.2,.2,ROCK,0,-.56,0));
+}
+function xDruid(f,p){
+  const WOOD=0x5a3a1a,LEAF=[0xd9531a,0xf2a93b,0xc2541a,0xb8892a];
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2,l=box(.14,.04,.22,LEAF[i%4],Math.sin(a)*.3,1.36,Math.cos(a)*.3);
+    l.rotation.y=a;l.rotation.x=-.35;f.add(l);
+  }
+  f.add(cone(.3,.5,0x8a4b1f,0,1.62,-.04,12));f.add(ball(.07,0xf2a93b,0,1.9,-.04));
+  f.add(cyl(.46,.52,.14,0x8a4b1f,0,1.04,0,14));
+  for(let i=0;i<6;i++){const a=i/6*Math.PI*2+.3,l=box(.14,.05,.2,LEAF[(i+1)%4],Math.sin(a)*.5,1.04,Math.cos(a)*.5);l.rotation.y=a;f.add(l);}
+  f.add(box(.3,.24,.08,0xe8dcc0,0,.9,.24));f.add(box(.2,.16,.06,0xd9cdb0,0,.74,.25));
+  f.add(box(.68,.85,.05,0x6b3a1a,0,.66,-.23));f.add(box(.68,.06,.06,LEAF[1],0,.24,-.23));
+  f.add(box(.5,.06,.34,0x4a2f18,0,.52,0));f.add(ball(.07,0x7aff8a,.14,.52,.2,{emissive:0x4aff6a,emissiveIntensity:.8}));
+  p.armR.add(cyl(.04,.05,1.55,WOOD,0,-.15,.2,8));
+  for(const sx of [-1,1]){const k=cone(.04,.28,WOOD,sx*.1,.7,.2,6);k.rotation.z=-sx*.4;p.armR.add(k);}
+  p.armR.add(ball(.13,0x7aff8a,0,.68,.2,{emissive:0x4aff6a,emissiveIntensity:.85}));
+  for(let i=0;i<3;i++){const l=box(.12,.04,.18,LEAF[i],(i-1)*.14,.5,.2);l.rotation.z=(i-1)*.5;p.armR.add(l);}
+  p.armL.add(ball(.1,0xf2a93b,0,-.56,.05));
+}
+function xGuard(f,p,col){
+  const NAVY=0x2b2260,PLATE=0x3a2f78,VIO={emissive:0x7a3cff,emissiveIntensity:.7};
+  f.add(cyl(.29,.29,.22,PLATE,0,1.25,0,16));f.add(cyl(.3,.3,.04,YEL,0,1.35,0,16));
+  f.add(box(.34,.08,.1,0x14202b,0,1.2,.27));f.add(box(.04,.14,.1,0x14202b,0,1.1,.27));
+  f.add(box(.07,.4,.5,0x7a3cff,0,1.6,-.04,VIO));f.add(box(.07,.2,.24,0xb48aff,0,1.86,-.12,VIO));
+  for(const sx of [-1,1]){f.add(cyl(.21,.24,.2,PLATE,sx*.46,1.0,0,10));f.add(cyl(.2,.2,.04,YEL,sx*.46,1.12,0,10));}
+  f.add(box(.64,.52,.07,PLATE,0,.8,.21));f.add(box(.18,.18,.04,YEL,0,.84,.26));f.add(box(.64,.06,.08,YEL,0,.54,.22));
+  f.add(box(.68,.95,.05,0x241a52,0,.62,-.23));f.add(box(.68,.05,.06,0xb48aff,0,.16,-.23,VIO));
+  p.armL.add(box(.09,.78,.54,NAVY,-.14,-.42,.1));
+  p.armL.add(box(.1,.06,.58,YEL,-.14,-.04,.1));p.armL.add(box(.1,.06,.58,YEL,-.14,-.8,.1));
+  p.armL.add(box(.11,.22,.22,0xb48aff,-.2,-.42,.1,VIO));
+  p.armR.add(cyl(.035,.035,1.55,0x6b4420,0,-.1,.32,8));
+  p.armR.add(box(.05,.36,.2,0xd5d9de,0,.78,.32));p.armR.add(cone(.07,.28,0xb48aff,0,1.08,.32,4,VIO));
 }
 function xBomber(f,p){
   f.add(cyl(.27,.27,.14,0x8a1106,0,1.27,0,20));f.add(box(.34,.1,.34,0x14202b,0,1.38,0));
