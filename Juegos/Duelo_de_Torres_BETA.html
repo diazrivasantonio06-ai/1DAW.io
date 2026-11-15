@@ -210,6 +210,14 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 .pb-ico svg{width:32px;height:32px}
 .pb-dot{position:absolute;right:-8px;top:-10px;min-width:24px;height:24px;padding:0 5px;box-sizing:border-box;background:var(--red);color:#fff;border:3px solid var(--line);border-radius:999px;font:700 13px/18px var(--font);text-align:center;z-index:2}
 .pp-sub{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:-6px}
+.pp-count{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border:3px solid var(--line);border-radius:12px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.1)}
+.pp-count .pc-ico svg{width:30px;height:30px;display:block}
+.pp-count .pc-main{display:flex;flex-direction:column;gap:1px;min-width:0}
+.pp-count small{font:600 11px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pp-count b{font:700 22px/1.1 var(--font);color:var(--ink)}
+.pp-count.over{background:#ffd9d4}
+.pp-count.over b{color:var(--red)}
+.pp-end{margin:-4px 0 0;text-align:center;font:500 12px var(--font);color:var(--muted)}
 .chip.free{background:#6fe07b}
 .pp-prog{display:flex;flex-direction:column;gap:6px}
 .pp-prog .r{display:flex;justify-content:space-between;font:600 13px var(--font)}
@@ -344,7 +352,7 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
   <i class="ld-cloud c1"></i><i class="ld-cloud c2"></i>
   <div class="ld-stack" aria-hidden="true"><i class="lb a"></i><i class="lb b"></i><i class="lb c"></i></div>
   <h1 class="ld-title"><span>Duelo</span><span>de Torres</span></h1>
-  <span class="chip ld-beta">Beta</span>
+  <span class="chip ld-beta">Temporada 0 · BETA</span>
   <div class="ld-bar" aria-hidden="true"><div id="ld-fill"></div><span id="ld-pct" class="num">0%</span></div>
   <p id="ld-txt">Cargando…</p>
 </div>
@@ -464,7 +472,9 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pp-title">
     <button class="x brick" id="pp-x" type="button" aria-label="Cerrar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="#14202b" stroke-width="4" stroke-linecap="round"/></svg></button>
     <h2 id="pp-title">Pase de batalla</h2>
-    <div class="pp-sub"><span class="chip">Temporada BETA</span><span class="chip free">Gratis</span></div>
+    <div class="pp-sub"><span class="chip">Temporada 0 BETA</span><span class="chip free">Gratis</span></div>
+    <div class="pp-count" id="pp-count"><span class="pc-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="#fff" stroke="#14202b" stroke-width="2.6"/><path d="M12 8v5l3 2" stroke="#14202b" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 3h6" stroke="#14202b" stroke-width="2.6" stroke-linecap="round"/></svg></span><span class="pc-main"><small id="pp-count-l">La temporada termina en</small><b class="num" id="pp-count-t" role="timer">--</b></span></div>
+    <p class="pp-end" id="pp-end">Fin: 23 de noviembre a las 18:00 (hora de España).</p>
     <div class="pp-prog" id="pp-prog"></div>
     <div class="pt-list" id="pp-list"></div>
     <p class="pp-msg" id="pp-msg" role="status" aria-live="polite"></p>
@@ -757,7 +767,28 @@ $('prf-name').addEventListener('blur',e=>{if(!e.target.value.trim())e.target.val
 function passTier(){return Math.min(PASS_N,Math.floor(save.passXp/PASS_XP));}
 function isClaimed(i){return((save.passClaimed>>i)&1)===1;}
 function passReady(){let n=0;for(let i=0;i<passTier();i++)if(!isClaimed(i))n++;return n;}
-function addPassXp(n){const b=passTier();save.passXp=Math.min(PASS_N*PASS_XP,save.passXp+n);return passTier()-b;}
+/* Temporada 0 BETA: termina el 23 de noviembre de 2026 a las 18:00 (hora de España, UTC+1) */
+const SEASON_END=Date.UTC(2026,10,23,17,0,0);
+function seasonLeft(){return SEASON_END-Date.now();}
+function seasonEnded(){return seasonLeft()<=0;}
+function fmtLeft(ms){
+  const t=Math.max(0,Math.floor(ms/1000)),d=Math.floor(t/86400),h=Math.floor(t%86400/3600),m=Math.floor(t%3600/60),sc=t%60,z=n=>String(n).padStart(2,'0');
+  return (d>0?d+'d ':'')+z(h)+'h '+z(m)+'m '+z(sc)+'s';
+}
+let seasonWasOver=seasonEnded();
+function updCount(){
+  const over=seasonEnded();
+  $('pp-count').classList.toggle('over',over);
+  $('pp-count-l').textContent=over?'Estado':'La temporada termina en';
+  $('pp-count-t').textContent=over?'Temporada 0 finalizada':fmtLeft(seasonLeft());
+  $('pp-end').hidden=over;
+}
+setInterval(()=>{
+  if($('ov-pass').hidden)return;
+  updCount();
+  if(seasonEnded()&&!seasonWasOver){seasonWasOver=true;renderPass();}
+},1000);
+function addPassXp(n){if(seasonEnded())return 0;const b=passTier();save.passXp=Math.min(PASS_N*PASS_XP,save.passXp+n);return passTier()-b;}
 function updPass(){
   const t=passTier(),r=passReady();
   const inT=t>=PASS_N?PASS_XP:save.passXp-t*PASS_XP;
@@ -770,7 +801,7 @@ function ppMsg(t){$('pp-msg').textContent=t;}
 function renderPass(){
   const t=passTier(),inT=t>=PASS_N?PASS_XP:save.passXp-t*PASS_XP;
   $('pp-prog').innerHTML='<div class="r"><span>Nivel '+t+' de '+PASS_N+'</span><span class="num">'+(t>=PASS_N?'¡Pase completado!':inT+' / '+PASS_XP+' puntos para el nivel '+(t+1))+'</span></div><div class="bar"><i style="width:'+Math.round(inT/PASS_XP*100)+'%"></i></div>'
-    +'<small style="font:500 12px var(--font);color:var(--muted)">Gana puntos jugando: +20 si ganas, +12 si empatas y +8 si pierdes.</small>';
+    +'<small style="font:500 12px var(--font);color:var(--muted)">'+(seasonEnded()?'La temporada ha terminado: ya no se ganan puntos, pero puedes reclamar lo que tengas pendiente.':'Gana puntos jugando: +20 si ganas, +12 si empatas y +8 si pierdes.')+'</small>';
   $('pp-list').innerHTML=PASSR.map((r,i)=>{
     const done=isClaimed(i),ready=!done&&i<t,st=done?'done':ready?'ready':'lock',mid=r.troop;
     let ico,name,sub;
@@ -797,7 +828,7 @@ function claimPass(i){
   if(r.troop)refreshDeck();
   renderPass();renderTroops();refreshHome();
 }
-function openPass(){ppMsg('');renderPass();openOv('ov-pass','pp-x');}
+function openPass(){ppMsg('');renderPass();updCount();openOv('ov-pass','pp-x');}
 
 let activeArenaPath=0;
 function openArenaPath(arenaIdx){
@@ -1962,7 +1993,7 @@ function endGame(winner,why){
   const before=save.best;let delta=0;
   if(res==='p'){delta=30;save.wins++;}else if(res==='e'){delta=-Math.min(15,save.tro);save.losses++;}
   const ch=awardChest(res,why);
-  const xp=why==='surrender'?0:res==='p'?20:res==='d'?12:8;const tb=passTier();addPassXp(xp);const ta=passTier();
+  const xp=why==='surrender'||seasonEnded()?0:res==='p'?20:res==='d'?12:8;const tb=passTier();addPassXp(xp);const ta=passTier();
   save.tro=Math.max(0,save.tro+delta);save.best=Math.max(save.best,save.tro);persist();
   const newly=ARENAS.filter(a=>a.need>before&&a.need<=save.best);
   const t=$('end-title');
