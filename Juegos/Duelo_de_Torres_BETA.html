@@ -477,7 +477,7 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
     <h2 id="ap-title">Camino de Recompensas</h2>
     <p id="ap-sub" style="margin-top:-4px"></p>
     <div class="pt-list" id="ap-list"></div>
-    <p class="pp-msg" id="pp-msg" role="status" aria-live="polite"></p>
+    <p class="pp-msg" id="ap-msg" role="status" aria-live="polite"></p>
   </div>
 </div>
 
@@ -868,6 +868,8 @@ function defFor(team,id){
   return lvCache[k]||(lvCache[k]=Object.assign({},d,{hp:Math.round(d.hp*lvMul(id)),dmg:Math.round(d.dmg*lvMul(id))}));
 }
 
+const NEUTRAL={sky:0x2c3742,outer:0x2c3742,base:0x3a4652,stud:0x4a5766,lane:0x4a5766,laneStud:0x5a6878,wall:0x3a4652,bridge:0x4a5766,rail:0x2c3742,
+  river:0x3a4652,wave:0x4a5766,riverStud:0x4a5766,emis:0,hemi:[0xffffff,0x888888,.8],sun:[0xffffff,.6],deco:function(){}};
 const ARENAS=[
   {name:'Pradera de Ladrillos',need:0,sky:0x7ec8ff,outer:0x237841,base:0x4db84d,stud:0x72d672,lane:0xe0c98a,laneStud:0xefdca4,wall:0xb4b4aa,bridge:0xb98a55,rail:0x8f2a1a,
    river:0x1f7fd6,wave:0xffffff,riverStud:0x8fd0ff,emis:0,hemi:[0xffffff,0x7ed957,.9],sun:[0xfff6d5,.95],deco:decoPrado},
@@ -1090,8 +1092,6 @@ function decoNoche(){
   scatter(14,r=>glowShroom(.7+r()*.6,[0xff7ad8,0x7affd0,0xc27aff][Math.floor(r()*3)]),71);
 }
 
-const NEUTRAL={sky:0x2c3742,outer:0x2c3742,base:0x3a4652,stud:0x4a5766,lane:0x4a5766,laneStud:0x5a6878,wall:0x3a4652,bridge:0x4a5766,rail:0x2c3742,
-  river:0x3a4652,wave:0x4a5766,riverStud:0x4a5766,emis:0,hemi:[0xffffff,0x888888,.8],sun:[0xffffff,.6],deco:function(){}};
 
 function buildWorld(A){
   clearGroup(world,true);currentArena=A;
@@ -1679,6 +1679,7 @@ function tryDeploy(e){
 renderer.domElement.addEventListener('pointermove',moveGhost);
 renderer.domElement.addEventListener('pointerdown',e=>{e.preventDefault();tryDeploy(e);});
 
+function lockSvg(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 018 0v3" stroke="currentColor" stroke-width="2.6" fill="none"/></svg>';}
 function refreshHome(){
   const i=save.arena,A=ARENAS[i],ok=unlocked(i);
   updBadge();updPass();updProfile();
