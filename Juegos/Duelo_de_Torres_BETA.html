@@ -477,7 +477,7 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
     <h2 id="ap-title">Camino de Recompensas</h2>
     <p id="ap-sub" style="margin-top:-4px"></p>
     <div class="pt-list" id="ap-list"></div>
-    <p class="pp-msg" id="ap-msg" role="status" aria-live="polite"></p>
+    <p class="pp-msg" id="pp-msg" role="status" aria-live="polite"></p>
   </div>
 </div>
 
@@ -590,7 +590,6 @@ const CARDS={
     unit:{count:1,s:1,r:.6,hp:600,dmg:58,atk:.85,range:6,aggro:6.2,h:1.3,ranged:true,proj:'ball',building:true,life:30,custom:buildCannon}},
   bomber:{id:'bomber',name:'Bombardero',cost:3,css:'#8a1106',kind:'Tropa · A distancia · Pase BETA',desc:'Lanza bombas que explotan al caer y dañan a varias tropas a la vez.',pass:true,
     unit:{count:1,s:.9,hp:300,dmg:95,atk:1.5,speed:2.2,range:4.2,aggro:5.5,h:1.7,ranged:true,proj:'ball',splash:1.1,extra:xBomber}},
-  /* Nuevos personajes por Arena (1 por arena) */
   spearman:{id:'spearman',name:'Lancero',cost:2,css:'#1b6ec2',kind:'Tropa · Pradera',desc:'Guerrero veloz con lanza larga. Ideal para apoyo rápido en la Pradera.',arenaChar:0,
     unit:{count:1,s:.9,hp:380,dmg:70,atk:1.0,speed:2.8,range:1.2,aggro:5,h:1.6,extra:xSquire}},
   bandit:{id:'bandit',name:'Bandido',cost:3,css:'#c27a1b',kind:'Tropa · Desierto',desc:'Salteador astuto del desierto con gran movilidad y ataque rápido.',arenaChar:1,
@@ -609,10 +608,7 @@ const ALL=Object.keys(CARDS);
 const PASS_N=10, PASS_XP=40;
 const PASSR=[{t:'w',n:1},{t:'w',n:1},{t:'g',n:1},{t:'w',n:2},{troop:'bomber'},{t:'w',n:2},{t:'g',n:1},{t:'w',n:2},{t:'g',n:1},{t:'g',n:2}];
 
-/* Camino de recompensas por cada Arena (0 a 5) */
-/* Cada arena tiene 5 hitos con: trofeos necesarios en la arena, tipo de recompensa (chestW, chestG, coins, shards, troop), cantidad y ID opcional */
 const ARENA_PATHS=[
-  /* Arena 0: Pradera */
   [
     {tro:0, type:'coins', amt:50, desc:'50 Monedas'},
     {tro:30, type:'chestW', amt:1, desc:'Cofre de madera'},
@@ -620,7 +616,6 @@ const ARENA_PATHS=[
     {tro:120, type:'chestG', amt:1, desc:'Cofre dorado'},
     {tro:200, type:'troop', id:'spearman', desc:'¡Nuevo personaje: Lancero!'}
   ],
-  /* Arena 1: Desierto */
   [
     {tro:300, type:'coins', amt:100, desc:'100 Monedas'},
     {tro:350, type:'chestW', amt:1, desc:'Cofre de madera'},
@@ -628,7 +623,6 @@ const ARENA_PATHS=[
     {tro:500, type:'chestG', amt:1, desc:'Cofre dorado'},
     {tro:600, type:'troop', id:'bandit', desc:'¡Nuevo personaje: Bandido!'}
   ],
-  /* Arena 2: Glaciar */
   [
     {tro:600, type:'coins', amt:150, desc:'150 Monedas'},
     {tro:680, type:'chestW', amt:2, desc:'2 Cofres de madera'},
@@ -636,7 +630,6 @@ const ARENA_PATHS=[
     {tro:880, type:'chestG', amt:1, desc:'Cofre dorado'},
     {tro:1000, type:'troop', id:'yeti', desc:'¡Nuevo personaje: Yeti Helado!'}
   ],
-  /* Arena 3: Volcán */
   [
     {tro:1000, type:'coins', amt:200, desc:'200 Monedas'},
     {tro:1100, type:'chestW', amt:2, desc:'2 Cofres de madera'},
@@ -644,7 +637,6 @@ const ARENA_PATHS=[
     {tro:1350, type:'chestG', amt:2, desc:'2 Cofres dorados'},
     {tro:1500, type:'troop', id:'gargoyle', desc:'¡Nuevo personaje: Gárgola de Magma!'}
   ],
-  /* Arena 4: Bosque Otoñal */
   [
     {tro:1300, type:'coins', amt:250, desc:'250 Monedas'},
     {tro:1420, type:'chestW', amt:2, desc:'2 Cofres de madera'},
@@ -652,7 +644,6 @@ const ARENA_PATHS=[
     {tro:1750, type:'chestG', amt:2, desc:'2 Cofres dorados'},
     {tro:2000, type:'troop', id:'druid', desc:'¡Nuevo personaje: Druida Otoñal!'}
   ],
-  /* Arena 5: Noche Encantada */
   [
     {tro:1600, type:'coins', amt:300, desc:'300 Monedas'},
     {tro:1800, type:'chestW', amt:3, desc:'3 Cofres de madera'},
@@ -801,7 +792,6 @@ function claimPass(i){
 }
 function openPass(){ppMsg('');renderPass();openOv('ov-pass','pp-x');}
 
-/* Camino de Recompensas de la Arena seleccionada */
 let activeArenaPath=0;
 function openArenaPath(arenaIdx){
   activeArenaPath=arenaIdx;
@@ -1309,14 +1299,16 @@ function makeThumbs(){
     const dl=new THREE.DirectionalLight(0xffffff,.9);dl.position.set(3,5,4);sc.add(dl);
     const cam=new THREE.PerspectiveCamera(30,1,.1,60);
     for(const id of ALL){
-      const m=buildCardModel(id);sc.add(m);
-      const bb=new THREE.Box3().setFromObject(m),sz=bb.getSize(new THREE.Vector3()),ct=bb.getCenter(new THREE.Vector3());
-      const R=Math.max(sz.x,sz.y,sz.z)*.62+.1,dist=R/Math.tan(15*Math.PI/180);
-      cam.position.set(ct.x+dist*.42,ct.y+dist*.3,ct.z+dist*.86);cam.lookAt(ct);
-      r2.render(sc,cam);THUMB[id]=r2.domElement.toDataURL('image/png');
-      sc.remove(m);disposeObj(m);
+      try {
+        const m=buildCardModel(id);sc.add(m);
+        const bb=new THREE.Box3().setFromObject(m),sz=bb.getSize(new THREE.Vector3()),ct=bb.getCenter(new THREE.Vector3());
+        const R=Math.max(sz.x,sz.y,sz.z)*.62+.1,dist=R/Math.tan(15*Math.PI/180);
+        cam.position.set(ct.x+dist*.42,ct.y+dist*.3,ct.z+dist*.86);cam.lookAt(ct);
+        r2.render(sc,cam);THUMB[id]=r2.domElement.toDataURL('image/png');
+        sc.remove(m);disposeObj(m);
+      } catch(ex){console.warn('Error en miniatura de', id, ex);}
     }
-  }catch(e){}
+  }catch(e){console.warn('Error general en makeThumbs', e);}
   try{r2.dispose();if(r2.forceContextLoss)r2.forceContextLoss();}catch(e){}
 }
 function iconHTML(id){return THUMB[id]&&THUMB[id].length>200?'<img src="'+THUMB[id]+'" alt="" draggable="false">':ICON[id];}
@@ -2258,7 +2250,11 @@ function bootRun(i){
   if(i>=bootSteps.length){requestAnimationFrame(frame);ldFinish();return;}
   const st=bootSteps[i];ldSet(st[0],st[1]);
   setTimeout(()=>{
-    try{st[2]();}catch(err){console.error(err);LDT.textContent='Error al cargar. Recarga la página.';return;}
+    try{
+      st[2]();
+    }catch(err){
+      console.error('Error en el paso de carga '+i+':', err);
+    }
     bootRun(i+1);
   },60);
 }
