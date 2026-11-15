@@ -538,7 +538,14 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 const THREE=window.THREE;
 const $=id=>document.getElementById(id);
 const stage=$('stage');
-if(!THREE){stage.insertAdjacentHTML('beforeend','<p style="padding:24px;color:#fff">No se pudo cargar el motor 3D.</p>');return;}
+const LD=$('loader'),LDF=$('ld-fill'),LDP=$('ld-pct'),LDT=$('ld-txt'),LD_MIN=2200,ldT0=performance.now();
+function ldSet(p,t){LDF.style.width=p+'%';LDP.textContent=p+'%';if(t)LDT.textContent=t;}
+function ldFinish(){
+  ldSet(100,'¡Listo para el duelo!');
+  const wait=Math.max(350,LD_MIN-(performance.now()-ldT0));
+  setTimeout(()=>{LD.classList.add('done');setTimeout(()=>LD.remove(),700);},wait);
+}
+if(!THREE){stage.insertAdjacentHTML('beforeend','<p style="padding:24px;color:#fff">No se pudo cargar el motor 3D.</p>');ldFinish();return;}
 const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const RH=1.3, BX=5.2, BW=1.5, XMAX=8.3, ZMAX=14.4, DURATION=180;
@@ -885,7 +892,7 @@ save.arena|=0;
 
 let renderer;
 try{renderer=new THREE.WebGLRenderer({antialias:true});}catch(err){
-  stage.insertAdjacentHTML('beforeend','<p style="padding:24px;color:#fff">Tu navegador no permite gráficos 3D (WebGL).</p>');return;
+  stage.insertAdjacentHTML('beforeend','<p style="padding:24px;color:#fff">Tu navegador no permite gráficos 3D (WebGL).</p>');ldFinish();return;
 }
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.shadowMap.enabled=true;
@@ -2233,19 +2240,12 @@ function friendsInit(){
 }
 function friendsOnTabShow(){if(!FRIENDS_HOST.innerHTML)return;friendsRender();}
 
-const LD=$('loader'),LDF=$('ld-fill'),LDP=$('ld-pct'),LDT=$('ld-txt'),LD_MIN=2200,ldT0=performance.now();
-function ldSet(p,t){LDF.style.width=p+'%';LDP.textContent=p+'%';if(t)LDT.textContent=t;}
 const bootSteps=[
   [10,'Construyendo la arena…',()=>buildWorld(ARENAS[save.arena])],
   [45,'Colocando las piezas…',()=>makeThumbs()],
   [70,'Reuniendo a las tropas…',()=>renderTroops()],
   [90,'Preparando el campo de batalla…',()=>{document.body.dataset.mode='home';resetMatch();showMenuScene();setTab('battle');refreshHome();fitCamera();friendsInit();}]
 ];
-function ldFinish(){
-  ldSet(100,'¡Listo para el duelo!');
-  const wait=Math.max(350,LD_MIN-(performance.now()-ldT0));
-  setTimeout(()=>{LD.classList.add('done');setTimeout(()=>LD.remove(),700);},wait);
-}
 function bootRun(i){
   if(i>=bootSteps.length){requestAnimationFrame(frame);ldFinish();return;}
   const st=bootSteps[i];ldSet(st[0],st[1]);
