@@ -5,8 +5,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-/* Layout: one column. Home = player bar / live 3D arena with carousel / play button / tab bar. Game = score HUD / arena / elixir + hand.
-   One committed plastic look: Lego primaries, thick black outlines, stud rows. Single theme by choice. */
 :root{
   --yellow:#f2cd37; --yellow-hi:#ffe27a; --yellow-lo:#c99f0b;
   --red:#c91a09; --red-lo:#8a1106;
@@ -23,18 +21,15 @@ button{font:inherit;color:inherit;cursor:pointer}
 svg{display:block}
 .num{font-variant-numeric:tabular-nums}
 
-/* plastic surfaces */
 .brick{border:3px solid var(--line);box-shadow:inset 0 -4px 0 rgba(0,0,0,.2),inset 0 3px 0 rgba(255,255,255,.38)}
 .studs{position:relative}
 .studs::before{content:"";position:absolute;left:14px;right:14px;top:-9px;height:9px;pointer-events:none;
   background:radial-gradient(ellipse 8px 4.2px at 50% 100%,var(--stud,var(--yellow-lo)) 0 98%,transparent 100%) 0 0/26px 9px repeat-x}
 
-/* mode visibility */
 body:not([data-mode="game"]) .hud, body:not([data-mode="game"]) .tray{display:none}
 body[data-mode="game"] #hbot, body[data-mode="game"] .panel, body[data-mode="game"] #arena-ui, body[data-mode="game"] #lock-veil, body[data-mode="game"] #btn-pass, body[data-mode="game"] #btn-profile{display:none}
 body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-veil, body:not([data-tab="battle"]) #playzone, body:not([data-tab="battle"]) #btn-pass, body:not([data-tab="battle"]) #btn-profile{display:none}
 
-/* ---------- game HUD ---------- */
 .hud{background:var(--yellow);border-bottom:4px solid var(--line);padding-block:8px;flex:none}
 .hud-in{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
 .side{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -77,22 +72,22 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 .ico img{width:46px;height:46px;object-fit:contain;pointer-events:none}
 .ico svg{width:30px;height:30px}
 
-/* ---------- home ---------- */
-
 #arena-ui{position:absolute;left:0;right:0;bottom:12px;z-index:4;display:flex;justify-content:center;pointer-events:none;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
 .ar-row{pointer-events:auto;display:flex;align-items:center;gap:8px;width:100%;max-width:520px}
 .ar-btn{width:46px;height:46px;flex:none;border-radius:11px;background:var(--yellow);display:grid;place-items:center;padding:0}
 .ar-btn svg{width:24px;height:24px}
 .ar-btn[aria-disabled="true"]{opacity:.35;cursor:default}
-.ar-card{flex:1;min-width:0;text-align:center;background:var(--paper);border-radius:12px;padding:6px 10px 7px;display:flex;flex-direction:column;gap:1px;align-items:center}
+.ar-card{flex:1;min-width:0;text-align:center;background:var(--paper);border-radius:12px;padding:6px 10px 7px;display:flex;flex-direction:column;gap:3px;align-items:center}
 .ar-card.locked{background:#dfe3e6}
 .ar-num{font:600 11px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.ar-card b{font:700 19px/1.1 var(--font);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ar-req{font:500 12px var(--font);color:var(--muted);display:flex;align-items:center;gap:4px;min-height:16px}
+.ar-card b{font:700 17px/1.1 var(--font);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ar-req{font:500 11px var(--font);color:var(--muted);display:flex;align-items:center;gap:4px;min-height:16px}
 .ar-req svg{width:13px;height:13px}
-.dots{display:flex;gap:5px;margin-top:3px}
+.ar-path-btn{background:var(--yellow);border:2px solid var(--line);border-radius:8px;padding:3px 10px;font:700 11px var(--font);cursor:pointer;margin-top:2px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}
+.dots{display:flex;gap:5px;margin-top:2px}
 .dot{width:9px;height:9px;border-radius:2px;background:#c7cdd2;border:2px solid var(--line);box-sizing:border-box}
 .dot.on{background:var(--red)}.dot.open{background:var(--yellow)}
+
 #lock-veil{position:absolute;inset:0;z-index:3;display:grid;place-items:center;background:rgba(20,32,43,.38);pointer-events:none}
 #lock-veil[hidden]{display:none}
 #lock-veil span{width:84px;height:84px;border-radius:16px;background:var(--yellow);border:4px solid var(--line);display:grid;place-items:center;box-shadow:inset 0 -5px 0 rgba(0,0,0,.2),inset 0 3px 0 rgba(255,255,255,.4)}
@@ -133,7 +128,6 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 .chip{display:inline-block;background:var(--yellow);color:var(--ink);border:3px solid var(--line);border-radius:999px;padding:2px 14px;font:700 13px var(--font);letter-spacing:.06em;text-transform:uppercase}
 .soon-box p{margin:0;max-width:40ch;font:500 15px/1.45 var(--font);color:#e3f0ff}
 
-/* ---------- overlays ---------- */
 .overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,45,90,.72);padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .overlay[hidden]{display:none}
 .sheet{position:relative;width:100%;max-width:400px;max-height:100%;overflow:auto;touch-action:pan-y;box-sizing:border-box;background:var(--paper);color:var(--ink);border:4px solid var(--line);border-radius:16px;padding:20px 18px;display:flex;flex-direction:column;gap:14px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.12),0 18px 40px rgba(0,0,0,.4)}
@@ -167,11 +161,9 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 .row{display:flex;gap:10px;flex-wrap:wrap}.row .btn{flex:1 1 140px;font-size:20px;padding:10px 12px}
 @media (prefers-reduced-motion:reduce){.card,.toast{transition:none}}
 
-/* ---------- tienda ---------- */
 .btn.sm{font-size:16px;padding:7px 10px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;box-sizing:border-box}
 .btn.sm svg{width:18px;height:18px;color:var(--yellow-hi)}
 
-/* ---------- cofres y mejoras ---------- */
 .sec-h{margin:6px 0 10px;font:700 18px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--yellow-hi);text-shadow:0 2px 0 rgba(0,0,0,.3)}
 .chests{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px 12px;margin:0 0 20px}
 .chest{display:flex;align-items:center;gap:10px;padding:10px;background:var(--paper);color:var(--ink);border-radius:12px}
@@ -204,7 +196,6 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 .reward small{display:block;font:600 11px var(--font);color:#5a4a00}
 .rewards{display:flex;flex-direction:column;gap:8px}
 
-/* ---------- pase de batalla ---------- */
 #btn-pass{position:absolute;top:16px;right:max(12px,env(safe-area-inset-right,0px));z-index:4;display:flex;align-items:stretch;padding:0;width:min(232px,calc(50% - 18px));border-radius:12px;background:var(--yellow);color:var(--ink);text-align:left}
 #btn-pass:active{transform:translateY(2px)}
 #btn-pass:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 6px var(--blue)}
@@ -247,7 +238,6 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 .pp-msg{min-height:18px;margin:0;text-align:center;font:600 13px var(--font);color:var(--muted)}
 .unlock.pass{color:var(--blue)}
 
-/* ---------- mazo y bloqueadas ---------- */
 .sec-p{margin:-4px 0 12px;font:500 13px/1.35 var(--font);color:#e3f0ff;max-width:56ch}
 .tile.locked{background:#e9ecee;color:#59646e}
 .tile.locked .ico{filter:grayscale(1) brightness(.75);opacity:.7}
@@ -259,7 +249,6 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 .grid.sm .tile .ico,.grid.sm .tile .ico img{width:60px;height:60px}
 .grid.sm .tile b{font-size:14px}
 
-/* ---------- perfil ---------- */
 #btn-profile{position:absolute;top:16px;left:max(12px,env(safe-area-inset-left,0px));z-index:4;display:flex;align-items:center;gap:8px;padding:7px 10px 8px 7px;width:min(270px,calc(50% - 18px));box-sizing:border-box;border-radius:12px;background:var(--blue);color:#fff;text-align:left;--stud:#3a86d8}
 #btn-profile:active{transform:translateY(2px)}
 #btn-profile:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 6px var(--yellow)}
@@ -283,7 +272,6 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 .prf-st span{font:600 11px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .prf-st b{font:700 22px/1.1 var(--font)}
 
-/* ---------- pantalla de carga ---------- */
 #loader{position:fixed;inset:0;z-index:999;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
   padding:max(24px,env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(24px,env(safe-area-inset-left,0px));
   background:linear-gradient(#7ec8ff 0,#7ec8ff 62%,#4db84d 62%,#4db84d 100%);color:var(--ink);overflow:hidden;transition:opacity .5s ease,visibility .5s;touch-action:none}
@@ -317,7 +305,6 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 #ld-txt{position:relative;z-index:1;margin:0;min-height:1.3em;text-align:center;font:600 16px var(--font);color:var(--ink);background:var(--paper);border:3px solid var(--line);border-radius:999px;padding:3px 16px}
 @media (prefers-reduced-motion:reduce){.lb{animation:none;opacity:1}.ld-cloud{animation:none;left:10%}#ld-fill{animation:none}#loader{transition:none}}
 
-/* ---------- friends panel ---------- */
 #friends-host{padding:0;overflow:auto}
 .friends-panel-inner{display:flex;flex-direction:column;gap:12px;height:100%}
 .friends-toolbar{display:flex;gap:8px;flex-wrap:wrap}
@@ -349,14 +336,8 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
 .friends-small-button{width:36px;height:36px;border-radius:8px;border:2px solid var(--line);background:var(--yellow);font:700 14px var(--font);cursor:pointer;display:grid;place-items:center;box-shadow:inset 0 -2px 0 rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.4)}
 .friends-small-button:active{transform:translateY(1px)}
 .friends-small-button[disabled]{opacity:.4;cursor:default}
-.friends-group-button{width:100%;padding:12px;border-radius:10px;border:3px solid var(--line);background:var(--blue);color:#fff;font:700 16px var(--font);cursor:pointer;box-shadow:inset 0 -4px 0 rgba(0,0,0,.2),inset 0 2px 0 rgba(255,255,255,.3)}
-.friends-group-button:active{transform:translateY(1px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.3)}
-.friends-request-button{width:100%;padding:12px;border-radius:10px;border:3px solid var(--line);background:var(--paper);color:var(--ink);font:600 14px var(--font);cursor:pointer;display:flex;align-items:center;justify-content:space-between;box-shadow:inset 0 -3px 0 rgba(0,0,0,.1),inset 0 2px 0 rgba(255,255,255,.5)}
-.friends-request-button:active{transform:translateY(1px)}
 .friends-empty{padding:24px;text-align:center;color:var(--muted);font:500 14px var(--font)}
 .friends-profile-link{display:inline-block;margin-top:12px;padding:10px 16px;border-radius:10px;border:3px solid var(--line);background:var(--blue);color:#fff;font:700 14px var(--font);text-decoration:none}
-.friends-search-results .friends-list{max-height:300px;overflow:auto}
-.friends-unread{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;border:2px solid var(--line);font:700 12px var(--font);display:grid;place-items:center;flex:none}
 </style>
 
 <div id="loader" role="status" aria-live="polite" aria-label="Cargando Duelo de Torres">
@@ -384,7 +365,13 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
       <div id="lock-veil" hidden><span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="#14202b"/><path d="M8 11V8a4 4 0 018 0v3" stroke="#14202b" stroke-width="2.6" fill="none"/></svg></span><b class="veil-t">Próximamente</b></div>
       <div id="arena-ui"><div class="ar-row">
         <button class="ar-btn brick" id="ar-prev" type="button" aria-label="Arena anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4l-8 8 8 8" stroke="#14202b" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <div class="ar-card brick" id="ar-card"><span class="ar-num" id="ar-num">Arena 1</span><b id="ar-name">Pradera</b><span class="ar-req" id="ar-req"></span><div class="dots" id="ar-dots"></div></div>
+        <div class="ar-card brick" id="ar-card">
+          <span class="ar-num" id="ar-num">Arena 1</span>
+          <b id="ar-name">Pradera</b>
+          <span class="ar-req" id="ar-req"></span>
+          <button class="ar-path-btn" id="ar-path-btn" type="button">Camino de Recompensas</button>
+          <div class="dots" id="ar-dots"></div>
+        </div>
         <button class="ar-btn brick" id="ar-next" type="button" aria-label="Arena siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4l8 8-8 8" stroke="#14202b" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div></div>
     </main>
@@ -426,7 +413,7 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
       <div class="next" id="next"></div>
       <div class="hand" id="hand"></div>
     </div>
-  </div></footer>
+  </footer>
 
   <footer id="hbot">
     <div id="playzone"><div class="band-in" style="display:flex;justify-content:center"><button class="btn big brick studs" id="btn-play" type="button">Jugar</button></div></div>
@@ -446,7 +433,7 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
     <h2 id="mode-t">Elige un modo</h2>
     <div class="modes">
       <button class="mode brick" id="mode-cpu" type="button"><span class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="3" fill="#0055bf" stroke="#14202b" stroke-width="2"/><circle cx="9" cy="12" r="1.8" fill="#fff"/><circle cx="15" cy="12" r="1.8" fill="#fff"/><path d="M12 6V3" stroke="#14202b" stroke-width="2.2" stroke-linecap="round"/></svg></span><span><b>Vs CPU</b><span class="d">Batalla contra el rival controlado por la IA. 3 minutos.</span></span></button>
-      <div class="mode off brick" aria-disabled="true"><span class="ribbon">Próximamente</span><span class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3.6" fill="#8d97a1"/><circle cx="16.5" cy="8" r="3.6" fill="#8d97a1"/><path fill="#8d97a1" d="M1.5 20c0-4 3-6.2 6.5-6.2s6.5 2.2 6.5 6.2zM15 14c.5-.1 1-.2 1.5-.2 3.3 0 6 2 6 6.2h-6.2c0-2.4-.5-4.6-1.3-6z"/></svg></span><span><b>JcJ</b><span class="d">Duelo contra otros jugadores en tiempo real.</span></span></div>
+      <div class="mode off brick" aria-disabled="true"><span class="ribbon">Próximamente</span><span class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3.6" fill="#8d97a1"/><circle cx="16.5" cy="8" r="3.6" fill="#8d97a1"/><path fill="#8d97a1" d="M1.5 20c0-4 3-6.2 6.5-6.2s6.5 2.2 6.5 6.2zM15 14c.5-.1 1-.2 1.5-.2 3.3 0 6 2 6 6.2h-6.2c0-2.4-.5-4.6-1.3-6 z"/></svg></span><span><b>JcJ</b><span class="d">Duelo contra otros jugadores en tiempo real.</span></span></div>
     </div>
   </div>
 </div>
@@ -481,6 +468,16 @@ body:not([data-tab="battle"]) #arena-ui, body:not([data-tab="battle"]) #lock-vei
     <div class="pp-prog" id="pp-prog"></div>
     <div class="pt-list" id="pp-list"></div>
     <p class="pp-msg" id="pp-msg" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<div class="overlay" id="ov-arenapath" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ap-title">
+    <button class="x brick" id="ap-x" type="button" aria-label="Cerrar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="#14202b" stroke-width="4" stroke-linecap="round"/></svg></button>
+    <h2 id="ap-title">Camino de Recompensas</h2>
+    <p id="ap-sub" style="margin-top:-4px"></p>
+    <div class="pt-list" id="ap-list"></div>
+    <p class="pp-msg" id="ap-msg" role="status" aria-live="polite"></p>
   </div>
 </div>
 
@@ -544,21 +541,18 @@ const stage=$('stage');
 if(!THREE){stage.insertAdjacentHTML('beforeend','<p style="padding:24px;color:#fff">No se pudo cargar el motor 3D.</p>');return;}
 const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ---------- constants ---------- */
 const RH=1.3, BX=5.2, BW=1.5, XMAX=8.3, ZMAX=14.4, DURATION=180;
 const TEAM={p:0x0055bf,e:0xc91a09};
 const LEGS={p:0x00397a,e:0x7a0c0c};
 const SKIN=0xf2cd37;
 const YEL=0xf2cd37, GRAY=0x6d6e5c, TAN=0xd9c9a3;
 
-/* ---------- save (per-viewer convenience) ---------- */
-const KEY='duelo-torres-v2';
-const save={tro:0,best:0,wins:0,losses:0,arena:0,chestW:0,chestG:0,passXp:0,passClaimed:0,passReal:-1,claimReal:-1,deck:255};
+const KEY='duelo-torres-v3';
+const save={tro:0,best:0,wins:0,losses:0,arena:0,chestW:0,chestG:0,coins:150,passXp:0,passClaimed:0,arenaClaims:0,deck:255};
 let savedObj=null;
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object'){savedObj=s;for(const k in save)if(typeof s[k]==='number'&&isFinite(s[k]))save[k]=s[k];}}catch(e){}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(save));}catch(e){}}
 
-/* ---------- cards ---------- */
 const ICON={
   squire:'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2l8 3v6c0 5-3.4 9-8 11-4.6-2-8-6-8-11V5z"/></svg>',
   archers:'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M7 3c8 3 8 15 0 18M7 12h13M17 9l3 3-3 3"/></svg>',
@@ -567,8 +561,16 @@ const ICON={
   mage:'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.1 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>',
   rider:'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>',
   meteor:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="16" cy="16" r="5.5" fill="currentColor"/><path d="M3 3l8 8M3 9l5 5M9 3l5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>',
-  cannon:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="16" r="5" fill="currentColor"/><rect x="8" y="6" width="13" height="6" rx="2" transform="rotate(-20 8 9)" fill="currentColor"/></svg>'
+  cannon:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="16" r="5" fill="currentColor"/><rect x="8" y="6" width="13" height="6" rx="2" transform="rotate(-20 8 9)" fill="currentColor"/></svg>',
+  bomber:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="14.5" r="7" fill="currentColor"/><path d="M15.5 8.5l3-3.2M18.5 5.3l.4-2.3M18.8 6.2l2.4-.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
+  spearman:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20L20 4M20 4v6M20 4h-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="16" r="3" fill="currentColor"/></svg>',
+  bandit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h18v-2a6 6 0 00-12 0v2z" fill="currentColor"/><circle cx="12" cy="9" r="4" fill="currentColor"/></svg>',
+  yeti:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="currentColor"/><path d="M8 9h2M14 9h2" stroke="#14202b" stroke-width="2" stroke-linecap="round"/></svg>',
+  gargoyle:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l4 6h-8z" fill="currentColor"/><circle cx="12" cy="14" r="6" fill="currentColor"/></svg>',
+  druid:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 10c3-3 11-3 14 0" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>',
+  guard:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="12" height="16" rx="2" fill="currentColor"/><path d="M9 10h6" stroke="#fff" stroke-width="2"/></svg>'
 };
+
 const CARDS={
   squire:{id:'squire',name:'Escudero',cost:3,css:'#c99f0b',kind:'Tropa · Cuerpo a cuerpo',desc:'Guerrero con escudo. Aguanta golpes mientras avanza hacia la torre más cercana.',
     unit:{count:1,s:1,hp:720,dmg:85,atk:1.1,speed:2.3,range:.35,aggro:5.5,h:1.55,extra:xSquire}},
@@ -586,27 +588,93 @@ const CARDS={
     spell:{radius:2.4,dmg:320,tdmg:130}},
   cannon:{id:'cannon',name:'Cañón',cost:3,css:'#59646e',kind:'Estructura · 30 s',desc:'Cañón de ladrillos que defiende tu zona durante 30 segundos. No se mueve.',
     unit:{count:1,s:1,r:.6,hp:600,dmg:58,atk:.85,range:6,aggro:6.2,h:1.3,ranged:true,proj:'ball',building:true,life:30,custom:buildCannon}},
-  bomber:{id:'bomber',name:'Bombardero',cost:3,css:'#8a1106',kind:'Tropa · A distancia · Pase BETA',desc:'Lanza bombas que explotan al caer y dañan a varias tropas a la vez. Premio gratis del Pase de batalla BETA.',pass:true,
-    unit:{count:1,s:.9,hp:300,dmg:95,atk:1.5,speed:2.2,range:4.2,aggro:5.5,h:1.7,ranged:true,proj:'ball',splash:1.1,extra:xBomber}}
+  bomber:{id:'bomber',name:'Bombardero',cost:3,css:'#8a1106',kind:'Tropa · A distancia · Pase BETA',desc:'Lanza bombas que explotan al caer y dañan a varias tropas a la vez.',pass:true,
+    unit:{count:1,s:.9,hp:300,dmg:95,atk:1.5,speed:2.2,range:4.2,aggro:5.5,h:1.7,ranged:true,proj:'ball',splash:1.1,extra:xBomber}},
+  /* Nuevos personajes por Arena (1 por arena) */
+  spearman:{id:'spearman',name:'Lancero',cost:2,css:'#1b6ec2',kind:'Tropa · Pradera',desc:'Guerrero veloz con lanza larga. Ideal para apoyo rápido en la Pradera.',arenaChar:0,
+    unit:{count:1,s:.9,hp:380,dmg:70,atk:1.0,speed:2.8,range:1.2,aggro:5,h:1.6,extra:xSquire}},
+  bandit:{id:'bandit',name:'Bandido',cost:3,css:'#c27a1b',kind:'Tropa · Desierto',desc:'Salteador astuto del desierto con gran movilidad y ataque rápido.',arenaChar:1,
+    unit:{count:1,s:.95,hp:440,dmg:90,atk:.9,speed:3.2,range:.4,aggro:5.2,h:1.65,extra:xSquire}},
+  yeti:{id:'yeti',name:'Yeti Helado',cost:5,css:'#6ab8ff',kind:'Tropa · Glaciar',desc:'Bestia de las nieves con muchísima vida que congela y aplasta a sus enemigos.',arenaChar:2,
+    unit:{count:1,s:1.4,hp:1900,dmg:110,atk:1.4,speed:1.5,range:.4,aggro:5,h:1.8,skin:0xd0e8ff,extra:xColossus}},
+  gargoyle:{id:'gargoyle',name:'Gárgola de Magma',cost:4,css:'#ff5a14',kind:'Tropa · Volcán',desc:'Monstruo de roca fundida que resiste ataques y lanza fuego en área.',arenaChar:3,
+    unit:{count:1,s:1.1,hp:850,dmg:130,atk:1.3,speed:2.0,range:3.5,aggro:5.5,h:1.7,ranged:true,proj:'magic',splash:1.0,extra:xMage}},
+  druid:{id:'druid',name:'Druida Otoñal',cost:4,css:'#3a9a48',kind:'Tropa · Bosque',desc:'Protector del bosque que canaliza magia curativa y de ataque.',arenaChar:4,
+    unit:{count:1,s:1.0,hp:520,dmg:95,atk:1.2,speed:2.2,range:4.0,aggro:5.5,h:1.8,ranged:true,proj:'magic',extra:xMage}},
+  guard:{id:'guard',name:'Guardia Real',cost:3,css:'#2b2260',kind:'Tropa · Noche',desc:'Soldado élite de la noche con armadura impenetrable.',arenaChar:5,
+    unit:{count:1,s:1.0,hp:680,dmg:100,atk:1.1,speed:2.0,range:.4,aggro:5.5,h:1.75,extra:xSquire}}
 };
+
 const ALL=Object.keys(CARDS);
-ICON.bomber='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="14.5" r="7" fill="currentColor"/><path d="M15.5 8.5l3-3.2M18.5 5.3l.4-2.3M18.8 6.2l2.4-.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
-/* pase de batalla gratis: 10 niveles; la tropa nueva está a mitad (nivel 5) */
 const PASS_N=10, PASS_XP=40;
 const PASSR=[{t:'w',n:1},{t:'w',n:1},{t:'g',n:1},{t:'w',n:2},{troop:'bomber'},{t:'w',n:2},{t:'g',n:1},{t:'w',n:2},{t:'g',n:1},{t:'g',n:2}];
-/* ===== MODO PRUEBA DEL PASE =====
-   true  = pase completo (10/10) para reclamar y testear.
-   false = vuelve a tu progreso real (se restaura solo la próxima vez que abras el juego). */
-const TEST_FULL_PASS=false;
-if(TEST_FULL_PASS){
-  if(save.passReal<0){save.passReal=save.passXp;save.claimReal=save.passClaimed;}
-  save.passXp=PASS_N*PASS_XP;persist();
-}else if(save.passReal>=0){
-  save.passXp=save.passReal;save.passClaimed=save.claimReal;save.passReal=-1;save.claimReal=-1;persist();
+
+/* Camino de recompensas por cada Arena (0 a 5) */
+/* Cada arena tiene 5 hitos con: trofeos necesarios en la arena, tipo de recompensa (chestW, chestG, coins, shards, troop), cantidad y ID opcional */
+const ARENA_PATHS=[
+  /* Arena 0: Pradera */
+  [
+    {tro:0, type:'coins', amt:50, desc:'50 Monedas'},
+    {tro:30, type:'chestW', amt:1, desc:'Cofre de madera'},
+    {tro:70, type:'coins', amt:100, desc:'100 Monedas'},
+    {tro:120, type:'chestG', amt:1, desc:'Cofre dorado'},
+    {tro:200, type:'troop', id:'spearman', desc:'¡Nuevo personaje: Lancero!'}
+  ],
+  /* Arena 1: Desierto */
+  [
+    {tro:300, type:'coins', amt:100, desc:'100 Monedas'},
+    {tro:350, type:'chestW', amt:1, desc:'Cofre de madera'},
+    {tro:420, type:'coins', amt:150, desc:'150 Monedas'},
+    {tro:500, type:'chestG', amt:1, desc:'Cofre dorado'},
+    {tro:600, type:'troop', id:'bandit', desc:'¡Nuevo personaje: Bandido!'}
+  ],
+  /* Arena 2: Glaciar */
+  [
+    {tro:600, type:'coins', amt:150, desc:'150 Monedas'},
+    {tro:680, type:'chestW', amt:2, desc:'2 Cofres de madera'},
+    {tro:760, type:'coins', amt:200, desc:'200 Monedas'},
+    {tro:880, type:'chestG', amt:1, desc:'Cofre dorado'},
+    {tro:1000, type:'troop', id:'yeti', desc:'¡Nuevo personaje: Yeti Helado!'}
+  ],
+  /* Arena 3: Volcán */
+  [
+    {tro:1000, type:'coins', amt:200, desc:'200 Monedas'},
+    {tro:1100, type:'chestW', amt:2, desc:'2 Cofres de madera'},
+    {tro:1200, type:'coins', amt:250, desc:'250 Monedas'},
+    {tro:1350, type:'chestG', amt:2, desc:'2 Cofres dorados'},
+    {tro:1500, type:'troop', id:'gargoyle', desc:'¡Nuevo personaje: Gárgola de Magma!'}
+  ],
+  /* Arena 4: Bosque Otoñal */
+  [
+    {tro:1300, type:'coins', amt:250, desc:'250 Monedas'},
+    {tro:1420, type:'chestW', amt:2, desc:'2 Cofres de madera'},
+    {tro:1550, type:'coins', amt:300, desc:'300 Monedas'},
+    {tro:1750, type:'chestG', amt:2, desc:'2 Cofres dorados'},
+    {tro:2000, type:'troop', id:'druid', desc:'¡Nuevo personaje: Druida Otoñal!'}
+  ],
+  /* Arena 5: Noche Encantada */
+  [
+    {tro:1600, type:'coins', amt:300, desc:'300 Monedas'},
+    {tro:1800, type:'chestW', amt:3, desc:'3 Cofres de madera'},
+    {tro:2050, type:'coins', amt:400, desc:'400 Monedas'},
+    {tro:2350, type:'chestG', amt:2, desc:'2 Cofres dorados'},
+    {tro:2600, type:'troop', id:'guard', desc:'¡Nuevo personaje: Guardia Real!'}
+  ]
+];
+
+function ownsCard(id){
+  const c=CARDS[id];
+  if(c.pass){const i=PASSR.findIndex(r=>r.troop===id);return i<0||((save.passClaimed>>i)&1)===1;}
+  if(c.arenaChar!==undefined){
+    const arenaIdx=c.arenaChar;
+    const bit=1<<arenaIdx;
+    return (save.arenaClaims&(bit))!==0 || save.tro>=ARENA_PATHS[arenaIdx][ARENA_PATHS[arenaIdx].length-1].tro;
+  }
+  return true;
 }
-function ownsCard(id){const i=PASSR.findIndex(r=>r.troop===id);return i<0||((save.passClaimed>>i)&1)===1;}
-const AIDECK=ALL.filter(id=>!CARDS[id].pass);
-const OWNED=[],DECK=[]; /* OWNED = cartas desbloqueadas; DECK = tu mazo de 8 */
+
+const AIDECK=ALL.filter(id=>!CARDS[id].pass && CARDS[id].arenaChar===undefined);
+const OWNED=[],DECK=[];
 function inDeck(id){return DECK.indexOf(id)>=0;}
 function refreshDeck(){
   OWNED.length=0;for(const id of ALL)if(ownsCard(id))OWNED.push(id);
@@ -617,11 +685,15 @@ function refreshDeck(){
 function swapDeck(outId,inId){
   let m=save.deck;m&=~(1<<ALL.indexOf(outId));m|=1<<ALL.indexOf(inId);save.deck=m;persist();refreshDeck();
 }
-function unlockText(id){const i=PASSR.findIndex(r=>r.troop===id);return i>=0?'Nivel '+(i+1)+' del Pase BETA':'Bloqueada';}
+function unlockText(id){
+  const c=CARDS[id];
+  if(c.pass){const i=PASSR.findIndex(r=>r.troop===id);return i>=0?'Nivel '+(i+1)+' del Pase BETA':'Bloqueada';}
+  if(c.arenaChar!==undefined){const ap=ARENA_PATHS[c.arenaChar];return 'Arena '+(c.arenaChar+1)+' ('+ap[ap.length-1].tro+' trofeos)';}
+  return 'Bloqueada';
+}
 refreshDeck();
 
-/* ---------- niveles de cartas y cofres ---------- */
-const MAXLV=5, FR=[0,5,10,20,40], MAXCH=8; /* FR[n] = fragmentos para pasar del nivel n al n+1 */
+const MAXLV=5, FR=[0,5,10,20,40], MAXCH=8;
 for(const id of ALL){
   let lv=1,fr=0;
   if(savedObj){const a=Number(savedObj['lv_'+id]),b=Number(savedObj['fr_'+id]);if(a>=1&&a<=MAXLV)lv=Math.floor(a);if(b>=0&&isFinite(b))fr=Math.floor(b);}
@@ -642,7 +714,6 @@ const CHESTS={
 function chestSvg(t){const c=CHESTS[t];
   return '<svg class="ch" viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="20" width="38" height="22" rx="3" fill="'+c.body+'" stroke="#14202b" stroke-width="3"/><path d="M5 22V17a8 8 0 018-8h22a8 8 0 018 8v5z" fill="'+c.lid+'" stroke="#14202b" stroke-width="3"/><rect x="19" y="19" width="10" height="11" rx="2" fill="#fffdf3" stroke="#14202b" stroke-width="3"/><rect x="22.8" y="23" width="2.6" height="4.5" fill="#14202b"/></svg>';}
 function chestCount(){return save.chestW+save.chestG;}
-/* gana un cofre al terminar una partida: victoria = dorado; si no, 40% de madera */
 function awardChest(res,why){
   if(why==='surrender')return null;
   let t=null;
@@ -660,7 +731,7 @@ function rollChest(t){
   for(let i=pool.length;i<total;i++)out[pool[Math.floor(Math.random()*pool.length)]]++;
   return out;
 }
-/* ---------- perfil ---------- */
+
 const NKEY='duelo-torres-nombre',DEFNAME='Constructor';
 let pname=DEFNAME;
 try{const n=localStorage.getItem(NKEY);if(n&&n.trim())pname=n.trim().slice(0,14);}catch(e){}
@@ -671,7 +742,7 @@ function updProfile(){
 function renderProfile(){
   $('prf-tro').textContent=save.tro;
   const g=save.wins+save.losses,pct=g?Math.round(save.wins/g*100)+'%':'—';
-  const st=[['Victorias',save.wins],['Derrotas',save.losses],['% victorias',pct],['Mejor marca',save.best],['Pase BETA',passTier()+'/'+PASS_N],['Cartas',OWNED.length+'/'+ALL.length]];
+  const st=[['Victorias',save.wins],['Derrotas',save.losses],['% victorias',pct],['Mejor marca',save.best],['Monedas',save.coins],['Cartas',OWNED.length+'/'+ALL.length]];
   $('prf-stats').innerHTML=st.map(x=>'<div class="prf-st"><span>'+x[0]+'</span><b class="num">'+x[1]+'</b></div>').join('');
 }
 function openProfile(){$('prf-name').value=pname;renderProfile();openOv('ov-profile','prf-x');}
@@ -685,14 +756,12 @@ $('prf-name').addEventListener('input',e=>{
 });
 $('prf-name').addEventListener('blur',e=>{if(!e.target.value.trim())e.target.value='';});
 
-/* ---------- pase: progreso y recompensas ---------- */
 function passTier(){return Math.min(PASS_N,Math.floor(save.passXp/PASS_XP));}
 function isClaimed(i){return((save.passClaimed>>i)&1)===1;}
 function passReady(){let n=0;for(let i=0;i<passTier();i++)if(!isClaimed(i))n++;return n;}
 function addPassXp(n){const b=passTier();save.passXp=Math.min(PASS_N*PASS_XP,save.passXp+n);return passTier()-b;}
 function updPass(){
   const t=passTier(),r=passReady();
-  /* la barra del menú muestra el progreso hacia el SIGUIENTE nivel (igual que dentro del pase); el círculo rojo es el nivel actual */
   const inT=t>=PASS_N?PASS_XP:save.passXp-t*PASS_XP;
   $('pb-tier').textContent=t;$('pb-txt').textContent=inT+'/'+PASS_XP;
   $('pb-fill').style.width=Math.round(inT/PASS_XP*100)+'%';
@@ -732,6 +801,69 @@ function claimPass(i){
 }
 function openPass(){ppMsg('');renderPass();openOv('ov-pass','pp-x');}
 
+/* Camino de Recompensas de la Arena seleccionada */
+let activeArenaPath=0;
+function openArenaPath(arenaIdx){
+  activeArenaPath=arenaIdx;
+  renderArenaPath();
+  openOv('ov-arenapath','ap-x');
+}
+function renderArenaPath(){
+  const ai=activeArenaPath;
+  const ap=ARENA_PATHS[ai];
+  const A=ARENAS[ai];
+  $('ap-title').textContent='Camino: '+A.name;
+  $('ap-sub').textContent='Tus trofeos actuales: '+save.tro+' (Desbloquea al alcanzar los trofeos del hito)';
+  
+  $('ap-list').innerHTML=ap.map((step,idx)=>{
+    const bitIndex=(ai*5)+idx;
+    const claimed=((save.arenaClaims>>bitIndex)&1)===1;
+    const ready=!claimed && save.tro>=step.tro;
+    const st=claimed?'done':ready?'ready':'lock';
+    
+    let ico, name, sub=step.desc;
+    if(step.type==='coins'){
+      ico='<span class="ico" style="--c:#f2cd37"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M12 7v10M9 10h6" stroke="#14202b" stroke-width="2"/></svg></span>';
+      name=step.amt+' Monedas';
+    }else if(step.type==='chestW'||step.type==='chestG'){
+      ico=chestSvg(step.type==='chestW'?'w':'g');
+      name=step.desc;
+    }else if(step.type==='troop'){
+      const c=CARDS[step.id];
+      ico='<span class="ico" style="--c:'+c.css+'">'+iconHTML(step.id)+'</span>';
+      name=c.name;
+      sub='Personaje exclusivo de Arena '+(ai+1);
+    }
+    
+    const act=claimed?'<svg viewBox="0 0 24 24" aria-label="Reclamado" width="24" height="24"><path d="M5 13l4 4 10-10" stroke="#237841" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      :ready?'<button class="btn sm" type="button" data-ai="'+ai+'" data-idx="'+idx+'">Reclamar</button>'
+      :'<svg class="lk" viewBox="0 0 24 24" aria-label="Bloqueado"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 018 0v3" stroke="currentColor" stroke-width="2.6" fill="none"/></svg>';
+    
+    return '<div class="pt '+st+(step.type==='troop'?' mid':'')+'">'+(step.type==='troop'?'<span class="tagn">Exclusivo</span>':'')+'<span class="pn">'+step.tro+'</span><span class="pi">'+ico+'</span><span class="pl"><b>'+name+'</b><small>'+sub+'</small></span><span class="pa">'+act+'</span></div>';
+  }).join('');
+
+  for(const b of document.querySelectorAll('#ap-list .btn'))b.addEventListener('click',()=>claimArenaStep(Number(b.dataset.ai),Number(b.dataset.idx)));
+}
+function claimArenaStep(ai,idx){
+  const bitIndex=(ai*5)+idx;
+  if(((save.arenaClaims>>bitIndex)&1)===1)return;
+  const step=ARENA_PATHS[ai][idx];
+  if(step.type==='coins'){
+    save.coins+=step.amt;
+    $('ap-msg').textContent='¡Has recibido '+step.amt+' monedas!';
+  }else if(step.type==='chestW'||step.type==='chestG'){
+    const t=(step.type==='chestW'?'w':'g');
+    if(chestCount()+step.amt>MAXCH){$('ap-msg').textContent='Tienes los cofres llenos ('+MAXCH+'). Abre alguno en Tropas.';return;}
+    save[CHESTS[t].key]+=step.amt;
+    $('ap-msg').textContent='¡Has recibido '+step.desc+'!';
+  }else if(step.type==='troop'){
+    $('ap-msg').textContent='¡Has desbloqueado a '+CARDS[step.id].name+'!';
+    refreshDeck();
+  }
+  save.arenaClaims|=1<<bitIndex;
+  persist();renderArenaPath();refreshHome();renderTroops();
+}
+
 const lvCache={};
 function defFor(team,id){
   const d=CARDS[id].unit;if(team!=='p'||lvOf(id)===1)return d;
@@ -739,9 +871,6 @@ function defFor(team,id){
   return lvCache[k]||(lvCache[k]=Object.assign({},d,{hp:Math.round(d.hp*lvMul(id)),dmg:Math.round(d.dmg*lvMul(id))}));
 }
 
-/* ---------- arenas ---------- */
-const NEUTRAL={sky:0x2c3742,outer:0x2c3742,base:0x3a4652,stud:0x4a5766,lane:0x4a5766,laneStud:0x5a6878,wall:0x3a4652,bridge:0x4a5766,rail:0x2c3742,
-  river:0x3a4652,wave:0x4a5766,riverStud:0x4a5766,emis:0,hemi:[0xffffff,0x888888,.8],sun:[0xffffff,.6],deco:function(){}};
 const ARENAS=[
   {name:'Pradera de Ladrillos',need:0,sky:0x7ec8ff,outer:0x237841,base:0x4db84d,stud:0x72d672,lane:0xe0c98a,laneStud:0xefdca4,wall:0xb4b4aa,bridge:0xb98a55,rail:0x8f2a1a,
    river:0x1f7fd6,wave:0xffffff,riverStud:0x8fd0ff,emis:0,hemi:[0xffffff,0x7ed957,.9],sun:[0xfff6d5,.95],deco:decoPrado},
@@ -751,12 +880,10 @@ const ARENAS=[
    river:0x4fc0ea,wave:0xffffff,riverStud:0xcff2ff,emis:0,hemi:[0xeaf6ff,0x9ec4de,1],sun:[0xf4fbff,.85],deco:decoGlaciar},
   {name:'Volcán Ardiente',need:1000,sky:0x7a3b32,outer:0x2d2a2c,base:0x45444b,stud:0x5e5d66,lane:0x6b4a3a,laneStud:0x85604c,wall:0x2f2f34,bridge:0x5a3a2a,rail:0x2a1a14,
    river:0xff5a14,wave:0xffd27a,riverStud:0xffb02e,emis:0xff4a00,hemi:[0xffd2b0,0x552222,.85],sun:[0xffc59a,.95],deco:decoVolcan},
-  /* arenas de la tienda. Trofeos necesarios = los de Clash Royale (0/300/600/1000/1300/1600/2000/2300/2600/3000) */
   {name:'Bosque Otoñal',need:1300,pv:0xe07a1f,sky:0xffd9a8,outer:0x8a4b1f,base:0xd08a3a,stud:0xe2a04e,lane:0xd9c28f,laneStud:0xe8d6a8,wall:0x9c6b3a,bridge:0x7a4a1f,rail:0x5a2f12,
    river:0x2a8fbf,wave:0xffffff,riverStud:0x9fdcf0,emis:0,hemi:[0xfff0d8,0xa8642a,.95],sun:[0xffdfb0,.95],deco:decoOtono},
   {name:'Noche Encantada',need:1600,pv:0x6ad8ff,sky:0x1b1747,outer:0x1a1238,base:0x3a2f78,stud:0x5446a4,lane:0x5b4a96,laneStud:0x7765c0,wall:0x2b2260,bridge:0x4a3a86,rail:0x241a52,
    river:0x7a3cff,wave:0xd9c2ff,riverStud:0xb48aff,emis:0x5a2cff,hemi:[0xa99cff,0x2a1f55,.8],sun:[0xb9b0ff,.65],deco:decoNoche},
-  /* próximamente: aparecen en el menú pero sin diseño visible */
   Object.assign({name:'Playa Tropical',need:Infinity,soon:true},NEUTRAL),
   Object.assign({name:'Ciudad Neón',need:Infinity,soon:true},NEUTRAL),
   Object.assign({name:'Pantano Embrujado',need:Infinity,soon:true},NEUTRAL),
@@ -766,11 +893,8 @@ function unlocked(i){const A=ARENAS[i];return !A.soon&&save.best>=A.need;}
 if(!(save.arena>=0&&save.arena<ARENAS.length)||!unlocked(save.arena|0))save.arena=0;
 save.arena|=0;
 
-/* ---------- renderer / scene ---------- */
 let renderer;
-try{
-  renderer=new THREE.WebGLRenderer({antialias:true});
-}catch(err){
+try{renderer=new THREE.WebGLRenderer({antialias:true});}catch(err){
   stage.insertAdjacentHTML('beforeend','<p style="padding:24px;color:#fff">Tu navegador no permite gráficos 3D (WebGL).</p>');return;
 }
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
@@ -791,7 +915,6 @@ scene.add(sun);
 const world=new THREE.Group(),towerGroup=new THREE.Group(),unitGroup=new THREE.Group(),barGroup=new THREE.Group(),fxGroup=new THREE.Group(),decoGroup=new THREE.Group();
 scene.add(world,towerGroup,unitGroup,barGroup,fxGroup,decoGroup);
 
-/* ---------- helpers ---------- */
 function mat(c,o){return new THREE.MeshPhongMaterial(Object.assign({color:c,shininess:60,specular:0x444444},o||{}));}
 function place(m,x,y,z){m.position.set(x||0,y||0,z||0);m.castShadow=true;m.receiveShadow=true;return m;}
 function box(w,h,d,c,x,y,z,o){return place(new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,o)),x,y,z);}
@@ -846,7 +969,6 @@ function faceTex(skin){
   faceCache[skin]=t;return t;
 }
 
-/* ---------- brick particles ---------- */
 const FXGEO=new THREE.BoxGeometry(.2,.14,.2),FXMATS={};
 function fxMat(c){return FXMATS[c]||(FXMATS[c]=new THREE.MeshPhongMaterial({color:c,shininess:60}));}
 let fxs=[];
@@ -873,7 +995,6 @@ function bricks(pos,colors,n,power){
 }
 function burst(pos,color,size){bricks(pos,[color,YEL,0xffffff],Math.min(10,3+Math.round(size*2)),.7);}
 
-/* ---------- arena (world) ---------- */
 let riverTex=null,currentArena=null;
 function wavesTex(base,hi){
   const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d');
@@ -945,7 +1066,6 @@ function decoGlaciar(){
 function decoVolcan(){
   scatter(14,r=>lavaRock(.8+r()*.8),17);scatter(5,r=>volcanoDeco(.8+r()*.8),31);
 }
-
 function treeColor(s,c1,c2,c3){const t=new THREE.Group();
   t.add(box(.4*s,.9*s,.4*s,0x6b4420,0,.45*s,0));
   t.add(cyl(.75*s,.75*s,.5*s,c1,0,1.15*s,0,10));t.add(cyl(.58*s,.58*s,.5*s,c2,0,1.62*s,0,10));t.add(cyl(.4*s,.4*s,.5*s,c3,0,2.08*s,0,10));
@@ -972,6 +1092,9 @@ function decoNoche(){
   scatter(10,r=>glowCrystal(.7+r()*.7,[0x6ad8ff,0xc27aff,0xff7ad8][Math.floor(r()*3)]),67);
   scatter(14,r=>glowShroom(.7+r()*.6,[0xff7ad8,0x7affd0,0xc27aff][Math.floor(r()*3)]),71);
 }
+
+const NEUTRAL={sky:0x2c3742,outer:0x2c3742,base:0x3a4652,stud:0x4a5766,lane:0x4a5766,laneStud:0x5a6878,wall:0x3a4652,bridge:0x4a5766,rail:0x2c3742,
+  river:0x3a4652,wave:0x4a5766,riverStud:0x4a5766,emis:0,hemi:[0xffffff,0x888888,.8],sun:[0xffffff,.6],deco:function(){}};
 
 function buildWorld(A){
   clearGroup(world,true);currentArena=A;
@@ -1023,7 +1146,6 @@ function buildWorld(A){
   A.deco();
 }
 
-/* ---------- builders ---------- */
 function buildFigure(col,skin,legC){
   const fig=new THREE.Group();
   const legL=limb(.2,.36,.22,legC,-.15,.36,0),legR=limb(.2,.36,.22,legC,.15,.36,0);
@@ -1159,7 +1281,6 @@ function makeBar(w,col){
   return {g,fill};
 }
 
-/* ---------- card thumbnails (rendered from the same 3D models) ---------- */
 const THUMB={};
 function offsets(n){
   if(n===1)return [[0,0]];
@@ -1200,7 +1321,6 @@ function makeThumbs(){
 }
 function iconHTML(id){return THUMB[id]&&THUMB[id].length>200?'<img src="'+THUMB[id]+'" alt="" draggable="false">':ICON[id];}
 
-/* ---------- game state ---------- */
 let state='menu';
 let units=[],towers=[],projs=[];
 let game,ai,hand,queue,selected=null,shake=0,decoUnits=[];
@@ -1229,7 +1349,6 @@ function resetMatch(){
   renderHand();updateHud(true);setGhost(false);
 }
 
-/* ---------- units ---------- */
 function spawnUnit(def,team,x,z){
   const b=buildUnit(def,team);
   const r=def.r||.4*def.s;
@@ -1326,7 +1445,6 @@ function updateProjs(dt){
   projs=projs.filter(p=>!p.done);
 }
 
-/* ---------- unit AI ---------- */
 function pickTarget(u){
   const d=u.def;let best=null,bd=1e9;
   for(const e of units){
@@ -1427,19 +1545,10 @@ function updateTower(t,dt){
   if(best&&t.cd<=0){t.cd=t.atk;shoot(t.pos,t.top,best,t.dmg,0,t.team,'tower');}
 }
 
-/* ---------- rival ---------- */
-/* Dificultad de la CPU: crece con la arena que juegas (arena 1 = fácil, arena 6 = difícil).
-   Para ajustarla, cambia los valores de abajo: f va de 0 (arena 1) a 1 (arena 6). */
 function aiTune(){
   const f=Math.min(5,Math.max(0,save.arena|0))/5;
   return{
-    elx:.7+.2*f,          /* velocidad de elixir de la CPU (1 = igual que tú) */
-    tMin:2.2-.9*f,        /* segundos mínimos entre decisiones */
-    tRng:1.6-.3*f,        /* margen aleatorio extra entre decisiones */
-    react:.55+.3*f,       /* probabilidad de defender cuando atacas */
-    spell:.45+.35*f,      /* probabilidad de lanzar el hechizo si acierta a un grupo */
-    jit:2.6-1.4*f,        /* imprecisión al colocar defensas (más alto = más torpe) */
-    atk:8-2*f             /* elixir mínimo (aprox.) antes de lanzar un ataque */
+    elx:.7+.2*f,tMin:2.2-.9*f,tRng:1.6-.3*f,react:.55+.3*f,spell:.45+.35*f,jit:2.6-1.4*f,atk:8-2*f
   };
 }
 function aiPlay(o,x,z){
@@ -1479,7 +1588,6 @@ function aiUpdate(dt){
   if(cn&&ai.elixir>=7&&Math.random()<.25)aiPlay(cn,(Math.random()<.5?-1:1)*3.2,-6.5);
 }
 
-/* ---------- HUD ---------- */
 const crownSvg='<svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 19l-1-12 5 4 5-8 5 8 5-4-1 12z"/></svg>';
 $('crowns-p').innerHTML=crownSvg+crownSvg+crownSvg;
 $('crowns-e').innerHTML=crownSvg+crownSvg+crownSvg;
@@ -1522,7 +1630,6 @@ function renderHand(){
 let toastT=0;
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2200);}
 
-/* ---------- input ---------- */
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hitV=new THREE.Vector3();
 const ghost=new THREE.Mesh(new THREE.RingGeometry(.88,1,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x4ade80,transparent:true,opacity:.95,depthTest:false}));
 ghost.renderOrder=9;ghost.visible=false;ghost.position.y=.12;scene.add(ghost);
@@ -1573,8 +1680,6 @@ function tryDeploy(e){
 renderer.domElement.addEventListener('pointermove',moveGhost);
 renderer.domElement.addEventListener('pointerdown',e=>{e.preventDefault();tryDeploy(e);});
 
-/* ---------- save / trophies / arenas UI ---------- */
-function lockSvg(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 018 0v3" stroke="currentColor" stroke-width="2.6" fill="none"/></svg>';}
 function refreshHome(){
   const i=save.arena,A=ARENAS[i],ok=unlocked(i);
   updBadge();updPass();updProfile();
@@ -1597,8 +1702,8 @@ function setArena(i){
 }
 $('ar-prev').addEventListener('click',()=>setArena(save.arena-1));
 $('ar-next').addEventListener('click',()=>setArena(save.arena+1));
+$('ar-path-btn').addEventListener('click',()=>openArenaPath(save.arena));
 
-/* ---------- menu scene (idle minifigures on the real arena) ---------- */
 function showMenuScene(){
   clearGroup(decoGroup,true);decoUnits=[];
   const spec=[['squire','p',-3,6.2],['archers','p',3,7.2],['rider','p',0,4.6],['squire','e',3,-6.2],['mage','e',-3,-7.2],['imps','e',0,-4.6]];
@@ -1612,7 +1717,6 @@ function showMenuScene(){
   barGroup.visible=false;
 }
 
-/* ---------- tabs ---------- */
 function setTab(t){
   tab=t;document.body.dataset.tab=t;
   for(const b of document.querySelectorAll('#tabs .tab'))b.setAttribute('aria-selected',String(b.dataset.tab===t));
@@ -1637,7 +1741,6 @@ function wallSvg(){
 }
 $('wall-shop').innerHTML=wallSvg();$('wall-clans').innerHTML=wallSvg();
 
-/* ---------- troops panel ---------- */
 function updBadge(){const n=chestCount(),b=$('badge-troops');b.hidden=n<1;b.textContent=n;}
 function renderChests(){
   $('chest-row').innerHTML=['g','w'].map(t=>{
@@ -1713,8 +1816,12 @@ function openCard(id){
   }
   $('cd-stats').innerHTML=s;
   if(!ownsCard(id)){
-    $('cd-up').innerHTML='<div class="row2"><span>Bloqueada</span><span>'+unlockText(id)+'</span></div><button class="btn sm" id="cd-passbtn" type="button">Ir al Pase BETA</button>';
-    $('cd-passbtn').addEventListener('click',()=>{closeOv('ov-card');openPass();});
+    const isArenaChar=c.arenaChar!==undefined;
+    $('cd-up').innerHTML='<div class="row2"><span>Bloqueada</span><span>'+unlockText(id)+'</span></div><button class="btn sm" id="cd-arenaBtn" type="button">'+(isArenaChar?'Ver Camino de la Arena '+(c.arenaChar+1):'Ir al Pase BETA')+'</button>';
+    $('cd-arenaBtn').addEventListener('click',()=>{
+      closeOv('ov-card');
+      if(isArenaChar){setArena(c.arenaChar);openArenaPath(c.arenaChar);}else openPass();
+    });
     openOv('ov-card','card-x');return;
   }
   let up;
@@ -1738,27 +1845,27 @@ function openCard(id){
   openOv('ov-card','card-x');
 }
 
-/* ---------- overlays ---------- */
 let lastFocus=null;
 function openOv(id,focusId){lastFocus=document.activeElement;$(id).hidden=false;const f=$(focusId);if(f)f.focus();}
 function closeOv(id){$(id).hidden=true;if(lastFocus&&lastFocus.focus&&document.contains(lastFocus))lastFocus.focus();}
-for(const [ov,x] of [['ov-mode','mode-x'],['ov-card','card-x']]){
+for(const [ov,x] of [['ov-mode','mode-x'],['ov-card','card-x'],['ov-arenapath','ap-x']]){
   $(x).addEventListener('click',()=>closeOv(ov));
   $(ov).addEventListener('pointerdown',e=>{if(e.target===$(ov))closeOv(ov);});
 }
 $('ch-ok').addEventListener('click',()=>closeOv('ov-chest'));
 $('btn-pass').addEventListener('click',openPass);
 $('sw-x').addEventListener('click',()=>closeOv('ov-swap'));
-$('ov-swap').addEventListener('pointerdown',e=>{if(e.target===$('ov-swap'))closeOv('ov-swap');});
+$('ov-swap').addEventListener('pointerdown',e=>{if(e.target===$(ov-swap))closeOv('ov-swap');});
 $('pp-x').addEventListener('click',()=>closeOv('ov-pass'));
-$('ov-pass').addEventListener('pointerdown',e=>{if(e.target===$('ov-pass'))closeOv('ov-pass');});
-$('ov-chest').addEventListener('pointerdown',e=>{if(e.target===$('ov-chest'))closeOv('ov-chest');});
+$('ov-pass').addEventListener('pointerdown',e=>{if(e.target===$(ov-pass))closeOv('ov-pass');});
+$('ov-chest').addEventListener('pointerdown',e=>{if(e.target===$(ov-chest))closeOv('ov-chest');});
 window.addEventListener('keydown',e=>{
   if(e.key>='1'&&e.key<='4')selectCard(Number(e.key)-1);
   else if(e.key==='Escape'){
     if(!$('ov-profile').hidden)closeOv('ov-profile');
     else if(!$('ov-swap').hidden)closeOv('ov-swap');
     else if(!$('ov-pass').hidden)closeOv('ov-pass');
+    else if(!$('ov-arenapath').hidden)closeOv('ov-arenapath');
     else if(!$('ov-chest').hidden)closeOv('ov-chest');
     else if(!$('ov-mode').hidden)closeOv('ov-mode');
     else if(!$('ov-card').hidden)closeOv('ov-card');
@@ -1770,7 +1877,6 @@ window.addEventListener('keydown',e=>{
 $('btn-play').addEventListener('click',()=>{if(!unlocked(save.arena)){toast('Esta arena aún está bloqueada');return;}openOv('ov-mode','mode-cpu');});
 $('mode-cpu').addEventListener('click',()=>{closeOv('ov-mode');startMatch();});
 
-/* ---------- match flow ---------- */
 let quitT=0;
 function resetQuit(){clearTimeout(quitT);const b=$('btn-quit');b.textContent='Rendirse';b.classList.remove('arm');}
 function pauseGame(){
@@ -1828,7 +1934,7 @@ function endGame(winner,why){
 }
 function startMatch(){
   if(!unlocked(save.arena))return;
-  $('ov-end').hidden=true;$('ov-mode').hidden=true;$('ov-card').hidden=true;$('ov-chest').hidden=true;$('ov-pass').hidden=true;$('ov-swap').hidden=true;$('ov-profile').hidden=true;$('ov-pause').hidden=true;paused=false;
+  $('ov-end').hidden=true;$('ov-mode').hidden=true;$('ov-card').hidden=true;$('ov-chest').hidden=true;$('ov-pass').hidden=true;$('ov-arenapath').hidden=true;$('ov-swap').hidden=true;$('ov-profile').hidden=true;$('ov-pause').hidden=true;paused=false;
   document.body.dataset.mode='game';
   resetMatch();barGroup.visible=true;state='play';lastSec=-1;resetQuit();
   fitCamera();updateHud(true);
@@ -1859,7 +1965,6 @@ function update(dt){
   updateHud(false);
 }
 
-/* ---------- visuals sync ---------- */
 function syncVisuals(dt,now){
   if(riverTex)riverTex.offset.x-=dt*.08;
   for(let i=fxs.length-1;i>=0;i--)if(!fxs[i](dt))fxs.splice(i,1);
@@ -1892,7 +1997,6 @@ function syncVisuals(dt,now){
   if(state==='menu')for(const d of decoUnits)d.body.position.y=Math.abs(Math.sin(now/650+d.seed))*.06;
 }
 
-/* ---------- camera / resize ---------- */
 const camBase=new THREE.Vector3();
 let menuDist=40;
 const MENU_Y=.6;
@@ -1937,7 +2041,6 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 
-/* ---------- friends panel ---------- */
 const FRIENDS_HOST=$('friends-host');
 let friendsClient=null, friendsUserId=null, friendsInitialized=false;
 let friendsDataGen=0, friendsList=[], friendReqs=[], suggestions=[];
@@ -2084,17 +2187,12 @@ function friendsRenderSearchResults(root){
     else if(p.relation_state==='incoming')act={label:'Aceptar',title:'Aceptar a '+p.display_name,run:friendsAcceptRequest};
     else if(p.relation_state==='outgoing')act={label:'Enviada',title:'Solicitud enviada',disabled:true,run:()=>{}};
     else act={label:'+',title:'Añadir a '+p.display_name,run:friendsSendRequest};
-    const canView= p.relation_state!=='none' || suggestions.some(s=>s.user_id===p.user_id);
     list.append(friendsRenderPerson(p,act?[act]:[]));
   });
   sec.append(list);root.append(sec);
 }
-function friendsViewProfile(p){
-  window.open('perfil-publico.html?user_id='+encodeURIComponent(p.user_id),'_blank');
-}
-function friendsInviteDuel(p){
-  alert('Próximamente: invitar a 1v1 a '+p.display_name);
-}
+function friendsViewProfile(p){window.open('perfil-publico.html?user_id='+encodeURIComponent(p.user_id),'_blank');}
+function friendsInviteDuel(p){alert('Próximamente: invitar a 1v1 a '+p.display_name);}
 async function friendsLoadData(render=true){
   if(!friendsUserId||!friendsClient)return;
   const reqId=friendsUserId,gen=++friendsDataGen;
@@ -2141,12 +2239,8 @@ function friendsInit(){
   friendsClient.auth.onAuthStateChange((_,s)=>setTimeout(()=>friendsHandleAuth(s),0));
   friendsClient.auth.getSession().then(({data,error})=>{if(error)throw error;friendsHandleAuth(data.session);}).catch(e=>{console.error('Friends init error:',e);friendsRender();});
 }
-function friendsOnTabShow(){
-  if(!FRIENDS_HOST.innerHTML)return;
-  friendsRender();
-}
+function friendsOnTabShow(){if(!FRIENDS_HOST.innerHTML)return;friendsRender();}
 
-/* ---------- boot (con pantalla de carga) ---------- */
 const LD=$('loader'),LDF=$('ld-fill'),LDP=$('ld-pct'),LDT=$('ld-txt'),LD_MIN=2200,ldT0=performance.now();
 function ldSet(p,t){LDF.style.width=p+'%';LDP.textContent=p+'%';if(t)LDT.textContent=t;}
 const bootSteps=[
@@ -2163,7 +2257,6 @@ function ldFinish(){
 function bootRun(i){
   if(i>=bootSteps.length){requestAnimationFrame(frame);ldFinish();return;}
   const st=bootSteps[i];ldSet(st[0],st[1]);
-  /* dejamos respirar al navegador para que pinte la barra antes del trabajo pesado */
   setTimeout(()=>{
     try{st[2]();}catch(err){console.error(err);LDT.textContent='Error al cargar. Recarga la página.';return;}
     bootRun(i+1);
