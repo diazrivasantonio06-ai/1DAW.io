@@ -360,8 +360,42 @@ const cosmeticsReady=members.every(member=>Object.prototype.hasOwnProperty.call(
 const startButton=isHost&&room.status==='waiting'?`<button ${canStart?'':'disabled'} onclick="startMultiplayerGame()">${members.length<2?'Esperando otro jugador':!multiplayerChannelReady?'Conectando…':!cosmeticsReady?'Sincronizando aspectos…':'▶ Empezar partida'}</button>`:'';
 ov.innerHTML=`<section class="menu-screen"><h2>♟ Sala cooperativa</h2><p>Sala ${escapeMultiplayerText(String(room.id).slice(0,8))} · ${members.length+invites.length}/${room.maxPlayers} plazas ocupadas o reservadas</p><div id="multiplayerStatus" role="status" style="color:${multiplayerNoticeIsError?'#ff8585':'var(--mut)'}">${escapeMultiplayerText(multiplayerNotice||friendError||status)}</div><div class="lobby-player-grid">${playerCards}</div>${cosmeticPanel}<p>Todos comienzan como Patata. La vida es individual y cada jugador revive al inicio de la siguiente oleada; la experiencia, el equipo y la tienda se comparten.</p>${isHost?`<h3>Invitaciones pendientes</h3><div class="row">${inviteCards}</div><h3>Invitar amigos</h3><div class="row">${friendCards}</div>`:'<p>El anfitrión puede invitar a sus amigos. La sala se actualizará al aceptar una invitación.</p>'}${startButton} <button class="menu-back" onclick="leaveMultiplayerLobby()">Salir de la sala</button> <button class="menu-back" onclick="refreshMultiplayerLobby()">Actualizar</button></section>`;ov.style.display='block'}
 function sendCooperativeEvent(event,payload){if(!multiplayerChannel||!multiplayerChannelReady)return Promise.reject(new Error('La conexión de la sala no está lista.'));return multiplayerChannel.send({type:'broadcast',event,payload}).then(status=>{if(status!=='ok')throw new Error('Realtime no confirmó el mensaje ('+status+').');return status})}
-function broadcastCooperativeState(force){if(multiplayerRole!=='host'||!G||!multiplayerChannelReady)return;const now=performance.now();if(!force&&now-(G.lastBroadcastAt||0)<.1*1000)return;G.lastBroadcastAt=now;const state=JSON.parse(JSON.stringify(G));state.pa=[];state.fx=[];state.pr=state.pr.map(projectile=>({...projectile,tr:[],hit:[]}));const packet={hostId:G.coopHostId,sequence:++multiplayerSequence,state,shopItems,luOpts,rr,clock};const size=JSON.stringify(packet).length;if(size>200000){console.error('El estado cooperativo supera el límite seguro de Realtime.',size);G.networkError='Estado de partida demasiado grande para enviarlo.';return}sendCooperativeEvent('coop-state',packet).catch(error=>{if(now-multiplayerSendWarningAt>5000){multiplayerSendWarningAt=now;console.error('No se pudo sincronizar la partida cooperativa.',error)}G.networkError='Conexión inestable; esperando sincronización.'})}
-function applyCooperativeState(packet){if(multiplayerRole!=='client'||!G||G.coopEnded||!packet||packet.hostId!==G.coopHostId||!Number.isInteger(packet.sequence)||packet.sequence<=multiplayerLastSequence||!packet.state)return;const alreadyEnded=G.sc==='end',oldUi=JSON.stringify([G.sc,G.gold,G.hp,G.maxhp,G.lv,G.pend,G.wp,shopItems,luOpts,rr]);multiplayerLastSequence=packet.sequence;multiplayerLastStateAt=performance.now();G=packet.state;G.networkError='';shopItems=Array.isArray(packet.shopItems)?packet.shopItems:[];luOpts=Array.isArray(packet.luOpts)?packet.luOpts:[];rr=Number.isFinite(packet.rr)?packet.rr:0;clock=Number.isFinite(packet.clock)?packet.clock:clock;const newUi=JSON.stringify([G.sc,G.gold,G.hp,G.maxhp,G.lv,G.pend,G.wp,shopItems,luOpts,rr]);if(G.sc==='lvl'&&oldUi!==newUi){multiplayerLeaveMenuOpen=false;renderLevelUp()}else if(G.sc==='shop'&&oldUi!==newUi){multiplayerLeaveMenuOpen=false;render()}else if(G.sc==='end'){if(!alreadyEnded){multiplayerLeaveMenuOpen=false;G.coopEnded=true;const won=Boolean(G.coopWin);G.sc='wave';over(won)}}else if(G.sc==='wave'&&!multiplayerLeaveMenuOpen)ov.style.display='none'}
+function broadcastCooperativeState(force){
+if(multiplayerRole!=='host'||!G||!multiplayerChannelReady)return;
+const now=performance.now();
+if(!force&&now-(G.lastBroadcastAt||0)<50)return;
+G.lastBroadcastAt=now;
+const snapshot={...G,pa:[],fx:[],pr:G.pr.map(projectile=>({...projectile,tr:[],hit:[]})),players:G.players&&G.players.map(player=>({...player,input:undefined})),p:G.p?{...G.p,input:undefined}:G.p};
+const state=JSON.parse(JSON.stringify(snapshot));
+const packet={hostId:G.coopHostId,sequence:++multiplayerSequence,state,shopItems,luOpts,rr,clock};
+const size=JSON.stringify(packet).length;
+if(size>200000){console.error('El estado cooperativo supera el límite seguro de Realtime.',size);G.networkError='Estado de partida demasiado grande para enviarlo.';return}
+sendCooperativeEvent('coop-state',packet).catch(error=>{if(now-multiplayerSendWarningAt>5000){multiplayerSendWarningAt=now;console.error('No se pudo sincronizar la partida cooperativa.',error)}G.networkError='Conexión inestable; esperando sincronización.'})
+}
+function applyCooperativeState(packet){
+if(multiplayerRole!=='client'||!G||G.coopEnded||!packet||packet.hostId!==G.coopHostId||!Number.isInteger(packet.sequence)||packet.sequence<=multiplayerLastSequence||!packet.state)return;
+const alreadyEnded=G.sc==='end',oldWave=G.wave,wasInWave=G.sc==='wave',local=G.players&&G.players.find(player=>player.id===multiplayerUserId),predicted=wasInWave&&local&&!local.downed?{x:local.x,y:local.y,face:local.face}:null,oldUi=JSON.stringify([G.sc,G.gold,G.hp,G.maxhp,G.lv,G.pend,G.wp,shopItems,luOpts,rr]);
+multiplayerLastSequence=packet.sequence;
+multiplayerLastStateAt=performance.now();
+G=packet.state;
+if(predicted&&G.sc==='wave'&&G.wave===oldWave){
+const updatedLocal=G.players&&G.players.find(player=>player.id===multiplayerUserId);
+if(updatedLocal&&!updatedLocal.downed){
+const dx=predicted.x-updatedLocal.x,dy=predicted.y-updatedLocal.y;
+if(Math.hypot(dx,dy)<80){updatedLocal.x+=dx*.85;updatedLocal.y+=dy*.85;updatedLocal.face=predicted.face}
+}
+}
+G.networkError='';
+shopItems=Array.isArray(packet.shopItems)?packet.shopItems:[];
+luOpts=Array.isArray(packet.luOpts)?packet.luOpts:[];
+rr=Number.isFinite(packet.rr)?packet.rr:0;
+clock=Number.isFinite(packet.clock)?packet.clock:clock;
+const newUi=JSON.stringify([G.sc,G.gold,G.hp,G.maxhp,G.lv,G.pend,G.wp,shopItems,luOpts,rr]);
+if(G.sc==='lvl'&&oldUi!==newUi){multiplayerLeaveMenuOpen=false;renderLevelUp()}
+else if(G.sc==='shop'&&oldUi!==newUi){multiplayerLeaveMenuOpen=false;render()}
+else if(G.sc==='end'){if(!alreadyEnded){multiplayerLeaveMenuOpen=false;G.coopEnded=true;const won=Boolean(G.coopWin);G.sc='wave';over(won)}}
+else if(G.sc==='wave'&&!multiplayerLeaveMenuOpen)ov.style.display='none'
+}
 function receiveCooperativeStart(payload){if(multiplayerRole||!multiplayerRoomData||!payload||payload.hostId!==multiplayerRoomData.hostId)return;multiplayerClient.rpc('get_game_lobby_details',{p_lobby_id:multiplayerLobbyId}).then(({data,error})=>{if(error)throw error;if(!data||data.status!=='started'||data.hostId!==payload.hostId)throw new Error('La sala no confirmó el inicio de la partida.');multiplayerRoomData=data;beginCooperativeGame(data.members,data.hostId);multiplayerLastSequence=0}).catch(showMultiplayerError)}
 function receiveCooperativeInput(payload){if(multiplayerRole!=='host'||!G||!payload||!Array.isArray(G.players))return;const player=G.players.find(candidate=>candidate.id===payload.userId);if(!player||player.id===G.coopHostId)return;const allowed=['a','d','w','s','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'],incoming=payload.keys&&typeof payload.keys==='object'?payload.keys:{},safeKeys={};for(const key of allowed)safeKeys[key]=Boolean(incoming[key]);let pointer=null;if(payload.pointer&&Number.isFinite(payload.pointer.x)&&Number.isFinite(payload.pointer.y))pointer={x:Math.max(0,Math.min(W,payload.pointer.x)),y:Math.max(0,Math.min(H,payload.pointer.y))};player.input={keys:safeKeys,pointer,receivedAt:performance.now()}}
 function receiveCooperativeAction(payload){if(multiplayerRole!=='host'||!G||!payload)return;const player=G.players&&G.players.find(candidate=>candidate.id===payload.userId);if(!player)return;if(payload.action==='pick-lu'&&G.sc==='lvl'&&Number.isInteger(payload.index)&&payload.index>=0&&payload.index<luOpts.length)pickLU(payload.index);else if(payload.action==='buy'&&G.sc==='shop'&&Number.isInteger(payload.index)&&payload.index>=0&&payload.index<shopItems.length)buy(payload.index);else if(payload.action==='reroll'&&G.sc==='shop')reroll();else if(payload.action==='next-wave'&&G.sc==='shop')nextWave()}

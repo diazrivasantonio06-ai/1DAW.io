@@ -53,7 +53,7 @@ window.GAMES = [
       { key: "best_round", label: "Mejor oleada", source: "session" },
       { key: "bossesKilled", label: "Jefes derrotados" }
     ],
-    src: "Juegos/patata-espacial-v2.html?v=3"
+    src: "Juegos/patata-espacial-v2.html?v=4"
   },
   {
     id: "duelo-de-torres",
