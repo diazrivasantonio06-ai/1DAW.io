@@ -670,10 +670,11 @@ const SKIN=0xf2cd37;
 const YEL=0xf2cd37, GRAY=0x6d6e5c, TAN=0xd9c9a3;
 
 const KEY='duelo-torres-v3';
-const save={tro:0,best:0,wins:0,losses:0,arena:0,chestW:0,chestG:0,coins:150,passXp:0,passClaimed:0,copos:0,s1xp:0,s1a:0,s1b:0,shopDay:0,shopBought:0,shop0:-1,shop1:-1,shop2:-1,shop3:-1,shop4:-1,shop5:-1,arenaClaims:0,deck:255};
+const save={tro:0,best:0,wins:0,losses:0,arena:0,chestW:0,chestG:0,coins:9999,betaTestTemp1:0,passXp:0,passClaimed:0,copos:0,s1xp:0,s1a:0,s1b:0,shopDay:0,shopBought:0,shop0:-1,shop1:-1,shop2:-1,shop3:-1,shop4:-1,shop5:-1,arenaClaims:0,deck:255};
 let savedObj=null;
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object'){savedObj=s;for(const k in save)if(typeof s[k]==='number'&&isFinite(s[k]))save[k]=s[k];}}catch(e){}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(save));}catch(e){}}
+if(save.betaTestTemp1!==1){save.coins=9999;save.betaTestTemp1=1;persist();}
 
 const ICON={
   squire:'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2l8 3v6c0 5-3.4 9-8 11-4.6-2-8-6-8-11V5z"/></svg>',
@@ -802,17 +803,7 @@ function arenaStepBitIndex(ai,idx){
   return ai*5+idx;
 }
 
-function ownsCard(id){
-  const c=CARDS[id];
-  if(c.pass){const i=PASSR.findIndex(r=>r.troop===id);return i>=0&&isClaimed(i);}
-  if(c.arenaChar!==undefined){
-    if(id==='bomber'&&((save.passClaimed>>4)&1)===1)return true;
-    const arenaIdx=c.arenaChar,steps=ARENA_PATHS[arenaIdx];
-    const stepIdx=steps.findIndex(step=>step.type==='troop'&&step.id===id);
-    if(stepIdx<0)return false;
-    const step=steps[stepIdx],bit=arenaStepBitIndex(arenaIdx,stepIdx);
-    return ((save.arenaClaims>>>bit)&1)===1||save.tro>=step.tro;
-  }
+function ownsCard(){
   return true;
 }
 
@@ -842,7 +833,7 @@ for(const id of ALL){
   if(savedObj){const a=Number(savedObj['lv_'+id]),b=Number(savedObj['fr_'+id]);if(a>=1&&a<=MAXLV)lv=Math.floor(a);if(b>=0&&isFinite(b))fr=Math.floor(b);}
   save['lv_'+id]=lv;save['fr_'+id]=fr;{const a=savedObj?Math.floor(Number(savedObj['sk_'+id])):0,b=savedObj?Math.floor(Number(savedObj['se_'+id])):0;save['sk_'+id]=a>0&&isFinite(a)?a:0;save['se_'+id]=b>0&&isFinite(b)?b:0;}
 }
-function ownsSkin(id,k){const i=SKIN_KEYS.indexOf(k);return i>=0&&((save['sk_'+id]>>i)&1)===1;}
+function ownsSkin(id,k){return SKIN_KEYS.indexOf(k)>=0;}
 function unlockSkin(id,k){const i=SKIN_KEYS.indexOf(k);if(i<0)return;save['sk_'+id]|=1<<i;persist();}
 function skinOf(id){const i=save['se_'+id]-1;if(i<0)return '';const k=SKIN_KEYS[i];return k&&ownsSkin(id,k)?k:'';}
 function equipSkin(id,k){save['se_'+id]=k?SKIN_KEYS.indexOf(k)+1:0;persist();}
@@ -855,20 +846,22 @@ function upgradeCard(id){
   if(!canUp(id))return false;
   save['fr_'+id]-=frNeed(id);save.coins-=upgradeCost(id);save['lv_'+id]=lvOf(id)+1;persist();return true;
 }
+const INFINITE_CHESTS=true;
 const CHESTS={
   g:{name:'Cofre dorado',key:'chestG',body:'#f2cd37',lid:'#c99f0b',tot:[14,18],coins:[60,100],kinds:4,info:'14-18 fragmentos de 4 cartas y 60-100 monedas. Se gana al vencer.'},
   w:{name:'Cofre de madera',key:'chestW',body:'#a8743a',lid:'#7a4a1f',tot:[6,9],coins:[20,40],kinds:2,info:'6-9 fragmentos de 2 cartas y 20-40 monedas. A veces cae al empatar o perder.'}
 };
 function chestSvg(t){const c=CHESTS[t];
   return '<svg class="ch" viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="20" width="38" height="22" rx="3" fill="'+c.body+'" stroke="#14202b" stroke-width="3"/><path d="M5 22V17a8 8 0 018-8h22a8 8 0 018 8v5z" fill="'+c.lid+'" stroke="#14202b" stroke-width="3"/><rect x="19" y="19" width="10" height="11" rx="2" fill="#fffdf3" stroke="#14202b" stroke-width="3"/><rect x="22.8" y="23" width="2.6" height="4.5" fill="#14202b"/></svg>';}
-function chestCount(){return save.chestW+save.chestG;}
+function chestCount(){return INFINITE_CHESTS?0:save.chestW+save.chestG;}
 function awardChest(res,why){
   if(why==='surrender')return null;
   let t=null;
   if(res==='p')t='g';else if(Math.random()<.4)t='w';
   if(!t)return null;
-  if(chestCount()>=MAXCH)return 'full';
-  save[CHESTS[t].key]++;return t;
+  if(!INFINITE_CHESTS&&chestCount()>=MAXCH)return 'full';
+  if(!INFINITE_CHESTS)save[CHESTS[t].key]++;
+  return t;
 }
 function rollChest(t){
   const c=CHESTS[t];
@@ -1088,7 +1081,7 @@ const ARENAS=[
   Object.assign({name:'Pantano Embrujado',need:Infinity,soon:true},NEUTRAL),
   Object.assign({name:'Castillo en las Nubes',need:Infinity,soon:true},NEUTRAL)
 ];
-function unlocked(i){const A=ARENAS[i];return !A.soon&&save.best>=A.need;}
+function unlocked(i){return i>=0&&i<ARENAS.length;}
 if(!(save.arena>=0&&save.arena<ARENAS.length)||!unlocked(save.arena|0))save.arena=0;
 save.arena|=0;
 
@@ -2376,7 +2369,7 @@ setInterval(()=>{
 },1000);
 function renderChests(){
   $('chest-row').innerHTML=['g','w'].map(t=>{
-    const c=CHESTS[t],n=save[c.key];
+    const c=CHESTS[t],n=INFINITE_CHESTS?'∞':save[c.key];
     return '<div class="chest brick'+(n?'':' empty')+'">'+chestSvg(t)+'<div class="ci"><b>'+c.name+' ×'+n+'</b><small>'+c.info+'</small><button class="btn sm" type="button" data-c="'+t+'" aria-disabled="'+(n?'false':'true')+'">'+(n?'Abrir':'Sin cofres')+'</button></div></div>';
   }).join('');
   for(const b of document.querySelectorAll('#chest-row .btn'))b.addEventListener('click',()=>openChest(b.dataset.c));
@@ -2437,10 +2430,10 @@ function revealChestCard(index){
 }
 function openChest(t){
   const c=CHESTS[t];
-  if(save[c.key]<1)return;
+  if(!INFINITE_CHESTS&&save[c.key]<1)return;
   if(chestRevealTimer)clearTimeout(chestRevealTimer);
   chestRevealTimer=0;chestRevealing=false;
-  save[c.key]--;
+  if(!INFINITE_CHESTS)save[c.key]--;
   const rolled=rollChest(t),got=rolled.fragments;
   const before={};for(const id in got)before[id]=canUp(id);
   save.coins+=rolled.coins;

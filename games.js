@@ -82,7 +82,7 @@ window.GAMES = [
     tag: "BETA TEST Temp 1",
     cover: "Juegos/Duelo_de_Torres.jpg",
     allowedRoles: ["admin", "vip"],
-    src: "Juegos/Duelo%20Torres%20T1/Duelo_de_Torres_T1.html"
+    src: "Juegos/Duelo%20Torres%20T1/Duelo_de_Torres_T1.html?v=2"
   },
   {
     id: "bloques",
