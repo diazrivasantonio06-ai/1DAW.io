@@ -92,6 +92,43 @@ window.GAMES = [
     src: "Juegos/Bloques%20%E2%80%93%20juego%20tipo%20Tetris.html"
   },
   {
+    id: "casino-aljarafe",
+    title: "Casino Aljarafe",
+    desc: "Ruleta, blackjack, tragaperras y póker con dinero ficticio.",
+    emoji: "🎰",
+    color: "#14664a",
+    tag: "Dinero ficticio",
+    leaderboardStats: [
+      { key: "balance", label: "Dinero", source: "casino-balance" }
+    ],
+    src: "Juegos/Casino%20Aljarafe.html"
+  },
+  {
+    id: "discord-defense",
+    title: "Discord Defense",
+    desc: "Defiende tu servidor de ataques de bots en este juego de estrategia en tiempo real.",
+    emoji: "🛡️",
+    color: "#3a5f7a",
+    tag: "Versión BETA",
+    cover: "Juegos/discord-defense.jpg",
+    stats: [{ key: "enemies_defeated", label: "Enemigos derrotados" }],
+    leaderboardStats: [
+      { key: "games_played", label: "Partidas", source: "session" },
+      { key: "enemies_defeated", label: "Enemigos derrotados", source: "session" },
+      { key: "total_damage_dealt", label: "Daño infligido", source: "session" }
+    ],
+    src: "Juegos/Discord-Defense.html"
+  },
+  {
+    id: "texas-holdem",
+    title: "Texas Hold’em",
+    desc: "Póker Texas Hold’em contra CPU o en mesas privadas con amigos.",
+    emoji: "♠️",
+    color: "#174b3a",
+    tag: "Fichas ficticias",
+    src: "Juegos/Texas%20Holdem.html"
+  },
+  {
     id: "500-cofres-animados",
     title: "500 cofres animados",
     desc: "Abre cofres animados y descubre objetos de una tienda pirata ficticia.",
@@ -107,17 +144,5 @@ window.GAMES = [
       { key: "pirateTokens", label: "Tokens piratas" }
     ],
     src: "Juegos/500%20cofres%20animados.html"
-  },
-  {
-    id: "casino-aljarafe",
-    title: "Casino Aljarafe",
-    desc: "Ruleta, blackjack, tragaperras y póker con dinero ficticio.",
-    emoji: "🎰",
-    color: "#14664a",
-    tag: "Dinero ficticio",
-    leaderboardStats: [
-      { key: "balance", label: "Dinero", source: "casino-balance" }
-    ],
-    src: "Juegos/Casino%20Aljarafe.html"
   }
 ];

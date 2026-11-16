@@ -2025,6 +2025,455 @@ grant execute on function public.leave_game_lobby(uuid) to authenticated;
 grant execute on function public.cancel_game_lobby_invite(uuid, uuid) to authenticated;
 grant execute on function public.start_game_lobby(uuid) to authenticated;
 
+create table if not exists public.texas_rooms (
+  id uuid primary key default gen_random_uuid(),
+  host_id uuid not null references auth.users (id) on delete cascade,
+  status text not null default 'waiting' check (status in ('waiting', 'started', 'closed')),
+  max_players smallint not null default 6 check (max_players = 6),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.texas_room_members (
+  room_id uuid not null references public.texas_rooms (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  joined_at timestamptz not null default now(),
+  primary key (room_id, user_id)
+);
+
+create table if not exists public.texas_room_invites (
+  room_id uuid not null references public.texas_rooms (id) on delete cascade,
+  inviter_id uuid not null references auth.users (id) on delete cascade,
+  invited_user_id uuid not null references auth.users (id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'declined', 'cancelled')),
+  created_at timestamptz not null default now(),
+  primary key (room_id, invited_user_id),
+  check (inviter_id <> invited_user_id)
+);
+
+create index if not exists texas_room_members_user_idx
+  on public.texas_room_members (user_id, joined_at desc);
+create index if not exists texas_room_invites_user_idx
+  on public.texas_room_invites (invited_user_id, created_at desc)
+  where status = 'pending';
+
+alter table public.texas_rooms enable row level security;
+alter table public.texas_room_members enable row level security;
+alter table public.texas_room_invites enable row level security;
+revoke all on public.texas_rooms, public.texas_room_members, public.texas_room_invites
+  from public, anon, authenticated;
+
+drop policy if exists "Texas room members can receive private broadcasts" on realtime.messages;
+create policy "Texas room members can receive private broadcasts"
+  on realtime.messages for select to authenticated
+  using (
+    extension = 'broadcast'
+    and (
+      (
+        pg_catalog.split_part((select realtime.topic()), ':', 1) = 'texas'
+        and exists (
+          select 1
+          from public.texas_room_members as member
+          where member.room_id::text = pg_catalog.split_part((select realtime.topic()), ':', 2)
+            and member.user_id = (select auth.uid())
+        )
+      )
+      or (
+        pg_catalog.split_part((select realtime.topic()), ':', 1) = 'texas-host'
+        and exists (
+          select 1
+          from public.texas_room_members as member
+          where member.room_id::text = pg_catalog.split_part((select realtime.topic()), ':', 2)
+            and member.user_id = (select auth.uid())
+        )
+      )
+      or (
+        pg_catalog.split_part((select realtime.topic()), ':', 1) = 'texas-private'
+        and exists (
+          select 1
+          from public.texas_room_members as member
+          join public.texas_rooms as room on room.id = member.room_id
+          where member.room_id::text = pg_catalog.split_part((select realtime.topic()), ':', 2)
+            and member.user_id = (select auth.uid())
+            and (
+              pg_catalog.split_part((select realtime.topic()), ':', 3) = (select auth.uid())::text
+              or room.host_id = (select auth.uid())
+            )
+        )
+      )
+    )
+  );
+
+drop policy if exists "Texas room players can send private broadcasts" on realtime.messages;
+create policy "Texas room players can send private broadcasts"
+  on realtime.messages for insert to authenticated
+  with check (
+    extension = 'broadcast'
+    and (
+      (
+        pg_catalog.split_part((select realtime.topic()), ':', 1) = 'texas'
+        and exists (
+          select 1
+          from public.texas_room_members as member
+          where member.room_id::text = pg_catalog.split_part((select realtime.topic()), ':', 2)
+            and member.user_id = (select auth.uid())
+        )
+      )
+      or (
+        pg_catalog.split_part((select realtime.topic()), ':', 1) = 'texas-host'
+        and exists (
+          select 1
+          from public.texas_room_members as member
+          join public.texas_rooms as room on room.id = member.room_id
+          where member.room_id::text = pg_catalog.split_part((select realtime.topic()), ':', 2)
+            and member.user_id = (select auth.uid())
+            and room.host_id = (select auth.uid())
+        )
+      )
+      or (
+        pg_catalog.split_part((select realtime.topic()), ':', 1) = 'texas-private'
+        and exists (
+          select 1
+          from public.texas_room_members as member
+          join public.texas_rooms as room on room.id = member.room_id
+          where member.room_id::text = pg_catalog.split_part((select realtime.topic()), ':', 2)
+            and member.user_id = (select auth.uid())
+            and (
+              room.host_id = (select auth.uid())
+              or pg_catalog.split_part((select realtime.topic()), ':', 3) = (select auth.uid())::text
+            )
+        )
+      )
+    )
+  );
+
+create or replace function public.create_texas_room()
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_room_id uuid;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user_id::text, 0));
+
+  select room.id into v_room_id
+  from public.texas_rooms as room
+  join public.texas_room_members as member on member.room_id = room.id
+  where member.user_id = v_user_id and room.status in ('waiting', 'started')
+  order by room.created_at desc
+  limit 1;
+  if v_room_id is not null then
+    return v_room_id;
+  end if;
+
+  insert into public.texas_rooms (host_id) values (v_user_id)
+  returning id into v_room_id;
+  insert into public.texas_room_members (room_id, user_id)
+  values (v_room_id, v_user_id);
+  return v_room_id;
+end;
+$$;
+
+create or replace function public.get_my_texas_room()
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select room.id
+  from public.texas_rooms as room
+  join public.texas_room_members as member on member.room_id = room.id
+  where member.user_id = auth.uid() and room.status in ('waiting', 'started')
+  order by room.created_at desc
+  limit 1;
+$$;
+
+create or replace function public.get_my_texas_invites()
+returns table (
+  room_id uuid,
+  inviter_id uuid,
+  inviter_name text,
+  created_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+
+  return query
+    select invite.room_id, invite.inviter_id, profile.display_name, invite.created_at
+    from public.texas_room_invites as invite
+    join public.texas_rooms as room on room.id = invite.room_id
+    join public.profiles as profile on profile.id = invite.inviter_id
+    where invite.invited_user_id = auth.uid()
+      and invite.status = 'pending'
+      and room.status = 'waiting'
+    order by invite.created_at desc;
+end;
+$$;
+
+create or replace function public.get_texas_room_details(p_room_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_room public.texas_rooms%rowtype;
+  v_members jsonb;
+  v_invites jsonb;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  if not exists (
+    select 1 from public.texas_room_members as member
+    where member.room_id = p_room_id and member.user_id = v_user_id
+  ) then
+    raise exception 'No perteneces a esta mesa.' using errcode = '42501';
+  end if;
+
+  select * into v_room from public.texas_rooms as room where room.id = p_room_id;
+  if not found then
+    raise exception 'La mesa no existe.';
+  end if;
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object('userId', member.user_id, 'name', profile.display_name)
+      order by member.joined_at
+    ),
+    '[]'::jsonb
+  ) into v_members
+  from public.texas_room_members as member
+  join public.profiles as profile on profile.id = member.user_id
+  where member.room_id = p_room_id;
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object('userId', invite.invited_user_id, 'name', profile.display_name)
+      order by invite.created_at
+    ),
+    '[]'::jsonb
+  ) into v_invites
+  from public.texas_room_invites as invite
+  join public.profiles as profile on profile.id = invite.invited_user_id
+  where invite.room_id = p_room_id
+    and invite.status = 'pending'
+    and v_room.host_id = v_user_id;
+
+  return jsonb_build_object(
+    'id', v_room.id,
+    'hostId', v_room.host_id,
+    'status', v_room.status,
+    'maxPlayers', v_room.max_players,
+    'members', v_members,
+    'invites', case when v_room.host_id = v_user_id then v_invites else '[]'::jsonb end
+  );
+end;
+$$;
+
+create or replace function public.invite_texas_friend(p_room_id uuid, p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_room public.texas_rooms%rowtype;
+  v_occupied integer;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  if p_user_id is null or p_user_id = v_user_id then
+    raise exception 'Jugador no válido.';
+  end if;
+  select * into v_room from public.texas_rooms as room where room.id = p_room_id for update;
+  if not found or v_room.host_id <> v_user_id or v_room.status <> 'waiting' then
+    raise exception 'Solo el anfitrión puede invitar a una mesa abierta.';
+  end if;
+  if not exists (
+    select 1 from public.friendships as friendship
+    where friendship.user_a = least(v_user_id, p_user_id)
+      and friendship.user_b = greatest(v_user_id, p_user_id)
+  ) then
+    raise exception 'Solo puedes invitar a amigos agregados en la web.';
+  end if;
+  if exists (
+    select 1 from public.texas_room_members as member
+    where member.room_id = p_room_id and member.user_id = p_user_id
+  ) then
+    raise exception 'Ese amigo ya está en la mesa.';
+  end if;
+  if exists (
+    select 1 from public.texas_room_invites as invite
+    where invite.room_id = p_room_id and invite.invited_user_id = p_user_id and invite.status = 'pending'
+  ) then
+    return;
+  end if;
+  select
+    (select count(*) from public.texas_room_members as member where member.room_id = p_room_id)
+    + (select count(*) from public.texas_room_invites as invite where invite.room_id = p_room_id and invite.status = 'pending')
+  into v_occupied;
+  if v_occupied >= v_room.max_players then
+    raise exception 'La mesa está llena.';
+  end if;
+
+  insert into public.texas_room_invites (room_id, inviter_id, invited_user_id)
+  values (p_room_id, v_user_id, p_user_id)
+  on conflict (room_id, invited_user_id) do update
+    set inviter_id = excluded.inviter_id, status = 'pending', created_at = now();
+end;
+$$;
+
+create or replace function public.respond_texas_invite(p_room_id uuid, p_accept boolean)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_room public.texas_rooms%rowtype;
+  v_member_count integer;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user_id::text, 0));
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_room_id::text, 0));
+  select room.* into v_room
+  from public.texas_rooms as room
+  join public.texas_room_invites as invite on invite.room_id = room.id
+  where room.id = p_room_id
+    and invite.invited_user_id = v_user_id
+    and invite.status = 'pending'
+  for update of room;
+  if not found then
+    raise exception 'La invitación ya no está disponible.';
+  end if;
+  if not p_accept then
+    update public.texas_room_invites set status = 'declined'
+    where room_id = p_room_id and invited_user_id = v_user_id;
+    return;
+  end if;
+  if v_room.status <> 'waiting' then
+    raise exception 'La mesa ya no acepta jugadores.';
+  end if;
+  if exists (
+    select 1 from public.texas_room_members as member
+    join public.texas_rooms as room on room.id = member.room_id
+    where member.user_id = v_user_id and room.status in ('waiting', 'started') and member.room_id <> p_room_id
+  ) then
+    raise exception 'Ya perteneces a otra sala abierta.';
+  end if;
+  select count(*) into v_member_count
+  from public.texas_room_members as member where member.room_id = p_room_id;
+  if v_member_count >= v_room.max_players then
+    raise exception 'La mesa ya está llena.';
+  end if;
+
+  insert into public.texas_room_members (room_id, user_id)
+  values (p_room_id, v_user_id)
+  on conflict (room_id, user_id) do nothing;
+  update public.texas_room_invites set status = 'accepted'
+  where room_id = p_room_id and invited_user_id = v_user_id;
+end;
+$$;
+
+create or replace function public.start_texas_room(p_room_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_room public.texas_rooms%rowtype;
+  v_member_count integer;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  select * into v_room from public.texas_rooms as room where room.id = p_room_id for update;
+  if not found or v_room.host_id <> v_user_id or v_room.status <> 'waiting' then
+    raise exception 'Solo el anfitrión puede iniciar una mesa abierta.';
+  end if;
+  select count(*) into v_member_count
+  from public.texas_room_members as member where member.room_id = p_room_id;
+  if v_member_count < 2 then
+    raise exception 'Se necesitan al menos dos jugadores para empezar.';
+  end if;
+
+  update public.texas_room_invites set status = 'cancelled'
+  where room_id = p_room_id and status = 'pending';
+  update public.texas_rooms set status = 'started' where id = p_room_id;
+end;
+$$;
+
+create or replace function public.leave_texas_room(p_room_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_room public.texas_rooms%rowtype;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  select room.* into v_room
+  from public.texas_rooms as room
+  join public.texas_room_members as member on member.room_id = room.id
+  where room.id = p_room_id and member.user_id = v_user_id
+  for update of room;
+  if not found then
+    raise exception 'No perteneces a esta mesa.';
+  end if;
+  if v_room.host_id = v_user_id then
+    update public.texas_rooms set status = 'closed' where id = p_room_id;
+    update public.texas_room_invites set status = 'cancelled'
+    where room_id = p_room_id and status = 'pending';
+    delete from public.texas_room_members where room_id = p_room_id;
+  else
+    delete from public.texas_room_members
+    where room_id = p_room_id and user_id = v_user_id;
+  end if;
+end;
+$$;
+
+revoke all on function public.create_texas_room() from public, anon, authenticated;
+revoke all on function public.get_my_texas_room() from public, anon, authenticated;
+revoke all on function public.get_my_texas_invites() from public, anon, authenticated;
+revoke all on function public.get_texas_room_details(uuid) from public, anon, authenticated;
+revoke all on function public.invite_texas_friend(uuid, uuid) from public, anon, authenticated;
+revoke all on function public.respond_texas_invite(uuid, boolean) from public, anon, authenticated;
+revoke all on function public.start_texas_room(uuid) from public, anon, authenticated;
+revoke all on function public.leave_texas_room(uuid) from public, anon, authenticated;
+grant execute on function public.create_texas_room() to authenticated;
+grant execute on function public.get_my_texas_room() to authenticated;
+grant execute on function public.get_my_texas_invites() to authenticated;
+grant execute on function public.get_texas_room_details(uuid) to authenticated;
+grant execute on function public.invite_texas_friend(uuid, uuid) to authenticated;
+grant execute on function public.respond_texas_invite(uuid, boolean) to authenticated;
+grant execute on function public.start_texas_room(uuid) to authenticated;
+grant execute on function public.leave_texas_room(uuid) to authenticated;
+
 do $$
 declare
   v_table text;

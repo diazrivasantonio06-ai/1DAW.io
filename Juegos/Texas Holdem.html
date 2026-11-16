@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102a24">
+  <title>Texas Hold’em | 1DAW.io</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="../supabase-config.js"></script>
+  <script defer src="../account.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --felt: #174b3a;
+      --felt-dark: #0c2d23;
+      --panel: #18352d;
+      --panel-light: #22483c;
+      --gold: #f2c14e;
+      --text: #f8f6ea;
+      --muted: #becfc5;
+      --danger: #ff9a9a;
+      font: 16px/1.45 system-ui, sans-serif;
+      background: var(--felt-dark);
+      color: var(--text);
+    }
+    * { box-sizing: border-box; }
+    body { min-width: 320px; min-height: 100vh; margin: 0; background: radial-gradient(ellipse at top, var(--felt), var(--felt-dark) 75%); }
+    main { width: min(100% - 1.5rem, 1200px); margin: 0 auto; padding: 1.25rem 0 3rem; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: .2rem; color: var(--gold); font: 800 clamp(1.7rem, 5vw, 2.7rem) Georgia, serif; }
+    h2 { margin-bottom: .45rem; }
+    .subtitle, .muted, .hint { color: var(--muted); }
+    .panel { margin-top: 1rem; padding: clamp(1rem, 4vw, 1.5rem); border: 1px solid rgb(255 255 255 / 15%); border-radius: 1rem; background: rgb(9 27 21 / 78%); box-shadow: 0 12px 30px rgb(0 0 0 / 18%); }
+    #table-view { padding: clamp(.65rem, 2vw, 1.25rem); }
+    .toolbar, .actions, .inline-form { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
+    .inline-form { margin-top: 1rem; }
+    button, select, input { min-height: 44px; border: 1px solid rgb(255 255 255 / 22%); border-radius: .65rem; background: var(--panel-light); color: var(--text); font: inherit; }
+    button { padding: .55rem .9rem; font-weight: 700; cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--gold); }
+    button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+    button.primary { border-color: var(--gold); background: var(--gold); color: #24200f; }
+    button.danger { color: var(--danger); }
+    select, input { padding: .5rem .7rem; }
+    label { display: grid; gap: .3rem; font-weight: 700; }
+    .status { min-height: 1.5em; margin: .7rem 0 0; color: var(--muted); }
+    .status[data-error="true"] { color: var(--danger); }
+    .hidden { display: none !important; }
+    .invite-list, .friend-list { display: grid; gap: .6rem; margin-top: .8rem; }
+    .invite-card, .friend-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .65rem; padding: .8rem; border: 1px solid rgb(255 255 255 / 14%); border-radius: .75rem; background: var(--panel); }
+    .room-members { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: .6rem; padding: 0; list-style: none; }
+    .room-members li { padding: .65rem; border: 1px solid rgb(255 255 255 / 15%); border-radius: .65rem; background: var(--panel); }
+    .table-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .5rem; }
+    .table-top strong { color: var(--gold); }
+    .poker-table {
+      position: relative;
+      isolation: isolate;
+      width: 100%;
+      height: clamp(360px, 48vw, 560px);
+      overflow: visible;
+      border: clamp(17px, 3vw, 34px) solid #563225;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 50% 46%, #168541 0%, #0c7736 58%, #075b2d 100%);
+      box-shadow: inset 0 0 0 3px #a56447, inset 0 0 0 8px #3e241d, 0 16px 30px rgb(0 0 0 / 38%);
+    }
+    .poker-table::before {
+      position: absolute;
+      z-index: 0;
+      inset: 6% 5%;
+      border: 2px solid rgb(153 255 194 / 34%);
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+    }
+    .board {
+      position: absolute;
+      z-index: 1;
+      top: 53%;
+      left: 50%;
+      display: flex;
+      justify-content: center;
+      gap: .4rem;
+      min-height: 0;
+      margin: 0;
+      transform: translate(-50%, -50%);
+    }
+    .player-grid { position: absolute; inset: 0; }
+    .seat {
+      position: absolute;
+      z-index: 2;
+      display: grid;
+      width: clamp(126px, 17%, 184px);
+      gap: .15rem;
+      padding: .45rem .55rem;
+      border: 1px solid rgb(202 255 216 / 25%);
+      border-radius: .75rem;
+      background: rgb(3 35 19 / 78%);
+      box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
+      text-align: center;
+    }
+    .seat-left { top: 64%; left: 2%; transform: translateY(-50%); }
+    .seat-top-left { top: 11%; left: 29%; transform: translateX(-50%); }
+    .seat-top-right { top: 11%; right: 29%; transform: translateX(50%); }
+    .seat-right { top: 64%; right: 2%; transform: translateY(-50%); }
+    .seat-bottom-right { right: 29%; bottom: 0; transform: translateX(50%); }
+    .seat-bottom-left { bottom: 0; left: 29%; transform: translateX(-50%); }
+    .seat-bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
+    .seat.turn { border-color: var(--gold); box-shadow: 0 0 0 2px rgb(242 193 78 / 45%), 0 4px 12px rgb(0 0 0 / 30%); }
+    .seat.out { opacity: .58; }
+    .seat-head { display: flex; justify-content: space-between; gap: .5rem; }
+    .seat-name { font-weight: 800; overflow-wrap: anywhere; }
+    .seat-stack { color: var(--gold); white-space: nowrap; }
+    .seat-note { min-height: 1.3em; margin: .25rem 0; color: var(--muted); font-size: .85rem; }
+    .cards { display: flex; justify-content: center; gap: .35rem; }
+    .playing-card { display: grid; width: clamp(34px, 5vw, 58px); height: clamp(50px, 7vw, 82px); place-items: center; border: 2px solid #fff; border-radius: .45rem; background: #fffdf6; color: #202020; font: 700 clamp(.9rem, 2vw, 1.35rem) Georgia, serif; box-shadow: 0 3px 8px rgb(0 0 0 / 28%); }
+    .playing-card.red { color: #c62839; }
+    .playing-card.back { border-color: #e8d9ad; background: repeating-linear-gradient(45deg, #842b37, #842b37 5px, #aa3d49 5px, #aa3d49 10px); }
+    .pot {
+      position: absolute;
+      z-index: 1;
+      top: 25%;
+      left: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .6rem;
+      min-width: 190px;
+      padding: .45rem 1rem;
+      margin: 0;
+      transform: translateX(-50%);
+      border: 2px solid rgb(153 255 194 / 48%);
+      border-radius: 999px;
+      background: rgb(3 67 31 / 44%);
+      color: #f7fff7;
+      font-size: clamp(1rem, 2.4vw, 1.45rem);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .pot-chip {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      border: 4px dashed #fff3d4;
+      border-radius: 50%;
+      background: #d8343d;
+      box-shadow: inset 0 0 0 3px #b51e2d, 0 2px 5px rgb(0 0 0 / 35%);
+    }
+    .table-status { min-height: 1.5em; }
+    .table-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: end; gap: .65rem; margin-top: 1rem; }
+    .table-actions label { min-width: 155px; }
+    .result { min-height: 1.6em; margin: .8rem 0 0; text-align: center; font-weight: 700; }
+    footer { margin-top: 1.5rem; color: var(--muted); font-size: .82rem; text-align: center; }
+    @media (max-width: 700px) {
+      main { width: min(100% - 1rem, 980px); padding-top: .75rem; }
+      .poker-table { height: clamp(230px, 64vw, 300px); border-width: 13px; }
+      .seat { width: clamp(86px, 26%, 112px); gap: .05rem; padding: .25rem .2rem; border-radius: .5rem; }
+      .seat-name, .seat-stack { font-size: .68rem; }
+      .seat-head { align-items: center; gap: .15rem; }
+      .seat-note { display: none; }
+      .cards { gap: .2rem; }
+      .playing-card { width: clamp(28px, 8vw, 38px); height: clamp(42px, 12vw, 56px); border-width: 1px; border-radius: .3rem; font-size: clamp(.78rem, 3.2vw, 1rem); }
+      .seat-left { top: 60%; left: 3%; }
+      .seat-right { top: 60%; right: 3%; }
+      .seat-top-left, .seat-top-right { top: 10%; }
+      .seat-top-left { left: 16%; }
+      .seat-top-right { right: 16%; }
+      .seat-bottom-left, .seat-bottom-right { bottom: 3%; }
+      .seat-bottom-left { left: 34%; }
+      .seat-bottom-right { right: 34%; }
+      .seat-bottom { bottom: 0; }
+      .board { top: 50%; gap: .2rem; }
+      .board .playing-card { width: clamp(22px, 6.2vw, 28px); height: clamp(34px, 9vw, 42px); font-size: clamp(.7rem, 2.8vw, .85rem); }
+      .pot { top: 18%; min-width: 150px; padding: .3rem .75rem; gap: .4rem; }
+      .pot-chip { width: 24px; height: 24px; border-width: 3px; }
+      #player-seats[data-count="5"] .seat, #player-seats[data-count="6"] .seat { width: 70px; padding: .2rem .12rem; }
+      #player-seats[data-count="5"] .seat-name, #player-seats[data-count="5"] .seat-stack,
+      #player-seats[data-count="6"] .seat-name, #player-seats[data-count="6"] .seat-stack { font-size: .56rem; }
+      #player-seats[data-count="5"] .seat-head, #player-seats[data-count="6"] .seat-head { gap: 0; }
+      #player-seats[data-count="5"] .seat .playing-card, #player-seats[data-count="6"] .seat .playing-card { width: 22px; height: 34px; font-size: .7rem; }
+      #player-seats[data-count="5"] .seat-left, #player-seats[data-count="6"] .seat-left { top: 60%; left: 1%; }
+      #player-seats[data-count="5"] .seat-right, #player-seats[data-count="6"] .seat-right { top: 60%; right: 1%; }
+      #player-seats[data-count="5"] .seat-top-left, #player-seats[data-count="6"] .seat-top-left { top: 10%; left: 16%; }
+      #player-seats[data-count="5"] .seat-top-right, #player-seats[data-count="6"] .seat-top-right { top: 10%; right: 16%; }
+      #player-seats[data-count="5"] .seat-bottom-left, #player-seats[data-count="6"] .seat-bottom-left { bottom: 3%; left: 25%; }
+      #player-seats[data-count="5"] .seat-bottom-right, #player-seats[data-count="6"] .seat-bottom-right { bottom: 3%; right: 25%; }
+    }
+    @media (max-width: 380px) {
+      .seat { width: 82px; }
+      .seat-name, .seat-stack { font-size: .62rem; }
+      .playing-card { width: 26px; height: 39px; }
+      #player-seats[data-count="5"] .seat .playing-card, #player-seats[data-count="6"] .seat .playing-card { width: 19px; height: 29px; }
+      .board { gap: .14rem; }
+      .pot { min-width: 132px; }
+    }
+    @media (max-width: 520px) {
+      .table-actions button { flex: 1 1 42%; }
+      .table-actions label { flex: 1 1 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Texas Hold’em</h1>
+      <p class="subtitle">Una mesa de hasta 6 jugadores. Solo fichas ficticias.</p>
+    </header>
+
+    <section id="home-view" class="panel">
+      <h2>Elige una mesa</h2>
+      <p class="hint">Cada partida empieza con 1.000 fichas. Las ciegas son 10/20 y no afectan al saldo del Casino Aljarafe.</p>
+      <div class="toolbar">
+        <label for="cpu-count">Rivales CPU
+          <select id="cpu-count">
+            <option value="1">1 CPU</option>
+            <option value="2">2 CPU</option>
+            <option value="3" selected>3 CPU</option>
+            <option value="4">4 CPU</option>
+            <option value="5">5 CPU</option>
+          </select>
+        </label>
+        <button id="start-cpu" class="primary" type="button">Jugar contra CPU</button>
+        <button id="open-friends" type="button">Jugar con amigos</button>
+      </div>
+      <p id="home-status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="friends-view" class="panel hidden">
+      <div class="table-top">
+        <div>
+          <h2>Mesa con amigos</h2>
+          <p class="hint">Crea una sala privada e invita hasta a cinco amigos agregados en 1DAW.io.</p>
+        </div>
+        <button id="back-home" type="button">Volver</button>
+      </div>
+      <p id="lobby-status" class="status" role="status" aria-live="polite"></p>
+      <div id="lobby-home">
+        <button id="create-room" class="primary" type="button">Crear sala</button>
+        <h3>Invitaciones pendientes</h3>
+        <div id="invite-list" class="invite-list"></div>
+      </div>
+      <div id="room-panel" class="hidden">
+        <p id="room-label" class="muted"></p>
+        <ul id="room-members" class="room-members"></ul>
+        <div id="room-friends">
+          <h3>Invitar amigos</h3>
+          <div id="friend-list" class="friend-list"></div>
+        </div>
+        <div class="actions">
+          <button id="start-friends-game" class="primary" type="button" disabled>Empezar partida</button>
+          <button id="refresh-room" type="button">Actualizar sala</button>
+          <button id="leave-room" class="danger" type="button">Salir de la sala</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="table-view" class="panel hidden">
+      <div class="table-top">
+        <div>
+          <h2 id="table-title">Mesa</h2>
+          <p id="street-label" class="hint"></p>
+        </div>
+        <button id="leave-table" class="danger" type="button">Salir de la mesa</button>
+      </div>
+      <p id="table-status" class="status table-status" role="status" aria-live="polite"></p>
+      <div class="poker-table" aria-label="Mesa de póquer">
+        <p id="pot-label" class="pot"><span class="pot-chip" aria-hidden="true"></span><span id="pot-amount">0 fichas</span></p>
+        <div id="community-cards" class="board" aria-label="Cartas comunitarias"></div>
+        <div id="player-seats" class="player-grid"></div>
+      </div>
+      <p id="action-message" class="result" aria-live="polite"></p>
+      <div id="table-actions" class="table-actions hidden">
+        <button id="fold-action" type="button">Retirarse</button>
+        <button id="call-action" class="primary" type="button">Pasar</button>
+        <label for="raise-target">Subir a (total de esta ronda)
+          <input id="raise-target" type="number" min="20" step="10" value="40">
+        </label>
+        <button id="raise-action" type="button">Apostar / subir</button>
+        <button id="all-in-action" type="button">All-in</button>
+      </div>
+      <div class="actions" style="justify-content:center;margin-top:1rem">
+        <button id="next-hand" class="primary hidden" type="button">Siguiente mano</button>
+      </div>
+    </section>
+    <footer>Juego social con fichas virtuales, sin apuestas ni premios de dinero real.</footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const $ = (selector) => document.querySelector(selector);
+    const RANKS = ["", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+    const SUITS = ["♠", "♥", "♦", "♣"];
+    const BIG_BLIND = 20;
+    const STARTING_STACK = 1000;
+    const STREET_NAMES = { preflop: "Preflop", flop: "Flop", turn: "Turn", river: "River", "hand-over": "Mano terminada", finished: "Partida terminada" };
+    const OPPONENT_SEAT_LAYOUTS = {
+      1: [],
+      2: ["top-left"],
+      3: ["top-left", "top-right"],
+      4: ["top-left", "top-right", "right"],
+      5: ["top-left", "top-right", "right", "bottom-right"],
+      6: ["top-left", "top-right", "right", "bottom-right", "bottom-left"]
+    };
+
+    let client = null;
+    let currentUserId = "";
+    let currentDisplayName = "Jugador";
+    let roomData = null;
+    let roomFriends = [];
+    let roomChannel = null;
+    let hostStateChannel = null;
+    let roomChannelReady = false;
+    let roomChannelId = "";
+    let privateChannels = new Map();
+    let lobbyTimer = 0;
+    let isOnline = false;
+    let isHost = false;
+    let hostUnavailable = false;
+    let lastHostStateAt = 0;
+    let gameState = null;
+    let sharedGameState = null;
+    let myHoleCards = [];
+    let cpuTimer = 0;
+    let cpuTurnKey = "";
+
+    function showStatus(element, text, isError = false) {
+      element.textContent = text;
+      element.dataset.error = String(isError);
+    }
+
+    function setView(viewId) {
+      ["#home-view", "#friends-view", "#table-view"].forEach((selector) => {
+        $(selector).classList.toggle("hidden", selector !== viewId);
+      });
+    }
+
+    function getAccount() {
+      try {
+        if (window.parent !== window && window.parent.location.origin === location.origin && window.parent.ARCADE_ACCOUNT) {
+          return window.parent.ARCADE_ACCOUNT;
+        }
+      } catch (error) {
+        console.warn("No se pudo acceder a la cuenta de 1DAW.io.", error);
+      }
+      return window.ARCADE_ACCOUNT || null;
+    }
+
+    async function checkSession() {
+      const account = getAccount();
+      if (!account || !account.isConfigured()) throw new Error("Supabase no está configurado.");
+      client = account.getClient();
+      if (!client) throw new Error("No se pudo cargar la cuenta de 1DAW.io.");
+      const { data, error } = await client.auth.getSession();
+      if (error) throw error;
+      if (!data.session) throw new Error("Inicia sesión en 1DAW.io para jugar con amigos.");
+      currentUserId = data.session.user.id;
+      const profile = await client.from("profiles").select("display_name").eq("id", currentUserId).single();
+      if (profile.error) throw profile.error;
+      currentDisplayName = profile.data.display_name;
+    }
+
+    function formatCard(card) {
+      if (!card) return null;
+      const element = document.createElement("span");
+      element.className = `playing-card${card.suit === "♥" || card.suit === "♦" ? " red" : ""}`;
+      element.textContent = `${RANKS[card.rank]}${card.suit}`;
+      return element;
+    }
+
+    function renderCardBack() {
+      const element = document.createElement("span");
+      element.className = "playing-card back";
+      element.setAttribute("aria-label", "Carta oculta");
+      return element;
+    }
+
+    function shuffledDeck() {
+      const deck = [];
+      for (let rank = 2; rank <= 14; rank += 1) {
+        SUITS.forEach((suit) => deck.push({ rank, suit }));
+      }
+      for (let i = deck.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+
+    function straightHigh(values) {
+      const ranks = [...new Set(values)].sort((a, b) => b - a);
+      if (ranks.includes(14)) ranks.push(1);
+      for (let i = 0; i <= ranks.length - 5; i += 1) {
+        if (ranks[i] - ranks[i + 4] === 4) return ranks[i];
+      }
+      return 0;
+    }
+
+    function rankFive(cards) {
+      const values = cards.map((card) => card.rank).sort((a, b) => b - a);
+      const counts = new Map();
+      values.forEach((value) => counts.set(value, (counts.get(value) || 0) + 1));
+      const groups = [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0]);
+      const flush = cards.every((card) => card.suit === cards[0].suit);
+      const straight = straightHigh(values);
+      if (flush && straight) return [8, straight];
+      if (groups[0][1] === 4) return [7, groups[0][0], groups[1][0]];
+      if (groups[0][1] === 3 && groups[1][1] === 2) return [6, groups[0][0], groups[1][0]];
+      if (flush) return [5, ...values];
+      if (straight) return [4, straight];
+      if (groups[0][1] === 3) return [3, groups[0][0], ...groups.slice(1).map((group) => group[0]).sort((a, b) => b - a)];
+      if (groups[0][1] === 2 && groups[1][1] === 2) {
+        return [2, Math.max(groups[0][0], groups[1][0]), Math.min(groups[0][0], groups[1][0]), groups[2][0]];
+      }
+      if (groups[0][1] === 2) return [1, groups[0][0], ...groups.slice(1).map((group) => group[0]).sort((a, b) => b - a)];
+      return [0, ...values];
+    }
+
+    function compareRanks(a, b) {
+      for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+        const difference = (a[i] || 0) - (b[i] || 0);
+        if (difference) return difference;
+      }
+      return 0;
+    }
+
+    function bestHand(cards) {
+      if (cards.length < 5) return [0, ...cards.map((card) => card.rank).sort((a, b) => b - a)];
+      let best = null;
+      for (let a = 0; a < cards.length - 4; a += 1) {
+        for (let b = a + 1; b < cards.length - 3; b += 1) {
+          for (let c = b + 1; c < cards.length - 2; c += 1) {
+            for (let d = c + 1; d < cards.length - 1; d += 1) {
+              for (let e = d + 1; e < cards.length; e += 1) {
+                const rank = rankFive([cards[a], cards[b], cards[c], cards[d], cards[e]]);
+                if (!best || compareRanks(rank, best) > 0) best = rank;
+              }
+            }
+          }
+        }
+      }
+      return best || [0];
+    }
+
+    function categoryName(rank) {
+      return ["Carta alta", "Pareja", "Doble pareja", "Trío", "Escalera", "Color", "Full", "Póker", "Escalera de color"][rank] || "Mano";
+    }
+
+    function nextEligibleIndex(fromIndex, predicate) {
+      const players = gameState.players;
+      for (let offset = 1; offset <= players.length; offset += 1) {
+        const index = (fromIndex + offset + players.length) % players.length;
+        if (predicate(players[index])) return index;
+      }
+      return -1;
+    }
+
+    function activePlayers() {
+      return gameState.players.filter((player) => !player.folded);
+    }
+
+    function playersWhoCanAct() {
+      return gameState.players.filter((player) => !player.folded && !player.allIn && player.stack > 0);
+    }
+
+    function contribute(player, amount) {
+      const paid = Math.max(0, Math.min(Math.floor(amount), player.stack));
+      player.stack -= paid;
+      player.streetBet += paid;
+      player.committed += paid;
+      gameState.pot += paid;
+      if (player.stack === 0) player.allIn = true;
+      return paid;
+    }
+
+    function startMatch(players) {
+      gameState = {
+        players: players.map((player) => ({
+          id: player.id,
+          name: player.name,
+          isCpu: Boolean(player.isCpu),
+          stack: STARTING_STACK,
+          streetBet: 0,
+          committed: 0,
+          folded: false,
+          allIn: false,
+          cards: [],
+          lastAction: ""
+        })),
+        handNumber: 0,
+        dealerIndex: -1,
+        board: [],
+        pot: 0,
+        currentBet: 0,
+        minRaise: BIG_BLIND,
+        pending: [],
+        turnId: null,
+        stage: "between",
+        revealed: false,
+        winners: [],
+        message: "Preparando la mesa…"
+      };
+      sharedGameState = null;
+      myHoleCards = [];
+      setView("#table-view");
+      nextHand();
+    }
+
+    function nextHand() {
+      if (!gameState || !isHost || !["between", "hand-over"].includes(gameState.stage)) return;
+      const previousDealer = gameState.dealerIndex;
+      const stillPlaying = gameState.players.filter((player) => player.stack > 0);
+      if (stillPlaying.length < 2) {
+        gameState.stage = "finished";
+        gameState.turnId = null;
+        gameState.message = stillPlaying.length === 1
+          ? `${stillPlaying[0].name} gana la partida.`
+          : "La partida ha terminado.";
+        publishGameState();
+        return;
+      }
+
+      gameState.handNumber += 1;
+      gameState.board = [];
+      gameState.pot = 0;
+      gameState.currentBet = 0;
+      gameState.minRaise = BIG_BLIND;
+      gameState.revealed = false;
+      gameState.winners = [];
+      gameState.pending = [];
+      gameState.players.forEach((player) => {
+        player.streetBet = 0;
+        player.committed = 0;
+        player.folded = player.stack === 0;
+        player.allIn = false;
+        player.cards = [];
+        player.lastAction = player.stack === 0 ? "Sin fichas" : "";
+      });
+      gameState.deck = shuffledDeck();
+      const dealer = nextEligibleIndex(previousDealer, (player) => player.stack > 0);
+      gameState.dealerIndex = dealer < 0 ? 0 : dealer;
+      const smallBlindIndex = stillPlaying.length === 2
+        ? gameState.dealerIndex
+        : nextEligibleIndex(gameState.dealerIndex, (player) => player.stack > 0);
+      const bigBlindIndex = nextEligibleIndex(smallBlindIndex, (player) => player.stack > 0);
+      gameState.players.filter((player) => player.stack > 0).forEach((player) => {
+        player.cards = [gameState.deck.pop(), gameState.deck.pop()];
+      });
+      contribute(gameState.players[smallBlindIndex], 10);
+      gameState.players[smallBlindIndex].lastAction = "Ciega pequeña";
+      contribute(gameState.players[bigBlindIndex], BIG_BLIND);
+      gameState.players[bigBlindIndex].lastAction = "Ciega grande";
+      gameState.currentBet = Math.max(...gameState.players.map((player) => player.streetBet));
+      gameState.stage = "preflop";
+      gameState.pending = playersWhoCanAct().map((player) => player.id);
+      const firstActor = nextEligibleIndex(bigBlindIndex, (player) => gameState.pending.includes(player.id));
+      gameState.turnId = firstActor < 0 ? null : gameState.players[firstActor].id;
+      gameState.message = `Mano ${gameState.handNumber}. Ciegas 10/20.`;
+      myHoleCards = gameState.players.find((player) => player.id === currentUserId)?.cards.slice() || [];
+      if (!gameState.turnId) advanceStreet();
+      publishGameState();
+    }
+
+    function scheduleNextActor(afterIndex) {
+      if (gameState.pending.length === 0) {
+        gameState.turnId = null;
+        advanceStreet();
+        return;
+      }
+      const index = nextEligibleIndex(afterIndex, (player) => gameState.pending.includes(player.id));
+      gameState.turnId = index < 0 ? gameState.pending[0] : gameState.players[index].id;
+    }
+
+    function awardFoldedPot(winner) {
+      const amount = gameState.pot;
+      winner.stack += amount;
+      gameState.players.forEach((player) => { player.committed = 0; player.streetBet = 0; });
+      gameState.stage = "hand-over";
+      gameState.turnId = null;
+      gameState.pending = [];
+      gameState.winners = [winner.id];
+      gameState.revealed = false;
+      gameState.message = `${winner.id === currentUserId ? "Ganas" : `${winner.name} gana`} ${amount} fichas porque los demás se retiraron.`;
+      publishGameState();
+    }
+
+    function dealNextStreet() {
+      if (gameState.stage === "preflop") {
+        gameState.deck.pop();
+        gameState.board.push(gameState.deck.pop(), gameState.deck.pop(), gameState.deck.pop());
+        gameState.stage = "flop";
+      } else if (gameState.stage === "flop") {
+        gameState.deck.pop();
+        gameState.board.push(gameState.deck.pop());
+        gameState.stage = "turn";
+      } else if (gameState.stage === "turn") {
+        gameState.deck.pop();
+        gameState.board.push(gameState.deck.pop());
+        gameState.stage = "river";
+      } else {
+        return false;
+      }
+      gameState.players.forEach((player) => { player.streetBet = 0; });
+      gameState.currentBet = 0;
+      gameState.minRaise = BIG_BLIND;
+      gameState.pending = playersWhoCanAct().map((player) => player.id);
+      gameState.message = `${STREET_NAMES[gameState.stage]}: apuestas abiertas.`;
+      return true;
+    }
+
+    function distributeShowdown() {
+      while (gameState.board.length < 5) gameState.board.push(gameState.deck.pop());
+      const contestants = activePlayers();
+      const ranks = new Map(contestants.map((player) => [player.id, bestHand([...player.cards, ...gameState.board])]));
+      const levels = [...new Set(gameState.players.map((player) => player.committed).filter((amount) => amount > 0))].sort((a, b) => a - b);
+      let previousLevel = 0;
+      const winners = new Set();
+      const summaries = new Map();
+      levels.forEach((level) => {
+        const contributors = gameState.players.filter((player) => player.committed >= level);
+        const sidePot = (level - previousLevel) * contributors.length;
+        const eligible = contestants.filter((player) => player.committed >= level);
+        if (eligible.length) {
+          let best = null;
+          let potWinners = [];
+          eligible.forEach((player) => {
+            const rank = ranks.get(player.id);
+            const comparison = best ? compareRanks(rank, best) : 1;
+            if (comparison > 0) {
+              best = rank;
+              potWinners = [player];
+            } else if (comparison === 0) {
+              potWinners.push(player);
+            }
+          });
+          const share = Math.floor(sidePot / potWinners.length);
+          let remainder = sidePot - share * potWinners.length;
+          potWinners.forEach((player) => {
+            player.stack += share + (remainder > 0 ? 1 : 0);
+            remainder -= remainder > 0 ? 1 : 0;
+            winners.add(player.id);
+          });
+          const key = `${potWinners.map((player) => player.id).sort().join(",")}:${categoryName(best[0])}`;
+          const summary = summaries.get(key) || { players: potWinners, category: categoryName(best[0]), amount: 0 };
+          summary.amount += sidePot;
+          summaries.set(key, summary);
+        }
+        previousLevel = level;
+      });
+      gameState.players.forEach((player) => { player.committed = 0; player.streetBet = 0; });
+      gameState.stage = "hand-over";
+      gameState.turnId = null;
+      gameState.pending = [];
+      gameState.revealed = true;
+      gameState.winners = [...winners];
+      const summaryText = [...summaries.values()].map(({ players, category, amount }) => {
+        const names = players.map((player) => player.id === currentUserId ? "Tú" : player.name);
+        const verb = players.length > 1 ? "ganan" : players[0].id === currentUserId ? "ganas" : "gana";
+        return `${names.join(" y ")} ${verb} (${category}, ${amount} fichas)`;
+      });
+      gameState.message = summaryText.length ? `${summaryText.join("; ")}.` : "La mano termina sin ganador.";
+      publishGameState();
+    }
+
+    function advanceStreet() {
+      const contestants = activePlayers();
+      if (contestants.length === 1) {
+        awardFoldedPot(contestants[0]);
+        return;
+      }
+      if (gameState.stage === "river") {
+        distributeShowdown();
+        return;
+      }
+      const canBet = playersWhoCanAct();
+      if (canBet.length < 2) {
+        while (gameState.board.length < 5) {
+          if (gameState.stage === "preflop") gameState.stage = "flop";
+          else if (gameState.stage === "flop") gameState.stage = "turn";
+          else if (gameState.stage === "turn") gameState.stage = "river";
+          gameState.deck.pop();
+          gameState.board.push(gameState.deck.pop());
+          if (gameState.stage === "flop") gameState.board.push(gameState.deck.pop(), gameState.deck.pop());
+        }
+        distributeShowdown();
+        return;
+      }
+      if (!dealNextStreet()) {
+        distributeShowdown();
+        return;
+      }
+      const dealer = gameState.dealerIndex;
+      const firstActor = nextEligibleIndex(dealer, (player) => gameState.pending.includes(player.id));
+      gameState.turnId = firstActor < 0 ? null : gameState.players[firstActor].id;
+      publishGameState();
+    }
+
+    function applyAction(userId, action, target) {
+      if (!isHost || !gameState || !["preflop", "flop", "turn", "river"].includes(gameState.stage)) return;
+      if (gameState.turnId !== userId) return;
+      const playerIndex = gameState.players.findIndex((player) => player.id === userId);
+      const player = gameState.players[playerIndex];
+      if (!player || player.folded || player.allIn) return;
+
+      if (action === "fold") {
+        player.folded = true;
+        player.lastAction = "Se retira";
+        gameState.pending = gameState.pending.filter((id) => id !== userId);
+      } else if (action === "call") {
+        const due = Math.max(0, gameState.currentBet - player.streetBet);
+        const paid = contribute(player, due);
+        player.lastAction = paid === 0 ? "Pasa" : player.stack === 0 ? `All-in (${paid})` : `Iguala ${paid}`;
+        gameState.pending = gameState.pending.filter((id) => id !== userId);
+      } else if (action === "raise" || action === "all-in") {
+        const maxTarget = player.streetBet + player.stack;
+        if (action === "all-in" && maxTarget <= gameState.currentBet) {
+          const paid = contribute(player, player.stack);
+          player.lastAction = `All-in (${paid})`;
+          gameState.message = `${player.name}: ${player.lastAction}.`;
+          gameState.pending = gameState.pending.filter((id) => id !== userId);
+          const remaining = activePlayers();
+          if (remaining.length === 1) awardFoldedPot(remaining[0]);
+          else {
+            scheduleNextActor(playerIndex);
+            publishGameState();
+          }
+          return;
+        }
+        const requested = action === "all-in" ? maxTarget : Math.floor(Number(target));
+        const targetAmount = Math.min(maxTarget, requested);
+        const minimum = gameState.currentBet === 0 ? BIG_BLIND : gameState.currentBet + gameState.minRaise;
+        if (!Number.isFinite(targetAmount) || targetAmount <= gameState.currentBet || (targetAmount < minimum && targetAmount < maxTarget)) {
+          return;
+        }
+        const oldBet = gameState.currentBet;
+        const paid = contribute(player, targetAmount - player.streetBet);
+        const increase = player.streetBet - oldBet;
+        gameState.currentBet = player.streetBet;
+        if (increase >= gameState.minRaise) gameState.minRaise = increase;
+        player.lastAction = player.stack === 0 ? `All-in (${paid})` : `${oldBet === 0 ? "Apuesta" : "Sube"} a ${player.streetBet}`;
+        gameState.pending = playersWhoCanAct()
+          .filter((other) => other.id !== userId)
+          .map((other) => other.id);
+      } else {
+        return;
+      }
+
+      gameState.message = `${player.name}: ${player.lastAction}.`;
+      const remaining = activePlayers();
+      if (remaining.length === 1) {
+        awardFoldedPot(remaining[0]);
+      } else {
+        scheduleNextActor(playerIndex);
+        publishGameState();
+      }
+    }
+
+    function cpuDecision(player) {
+      const owed = Math.max(0, gameState.currentBet - player.streetBet);
+      const cards = [...player.cards, ...gameState.board];
+      const handRank = bestHand(cards);
+      let strength = handRank[0] / 8;
+      if (cards.length < 5) {
+        const ranks = player.cards.map((card) => card.rank).sort((a, b) => b - a);
+        strength = (ranks[0] / 14) * .27 + (ranks[1] / 14) * .18
+          + (ranks[0] === ranks[1] ? .32 : 0)
+          + (player.cards[0].suit === player.cards[1].suit ? .08 : 0)
+          + (ranks[0] - ranks[1] <= 2 ? .05 : 0);
+      }
+      const potOdds = owed / Math.max(1, gameState.pot + owed);
+      if (owed > 0 && strength < .32 && Math.random() < Math.min(.85, .3 + potOdds)) {
+        applyAction(player.id, "fold");
+        return;
+      }
+      const maxTarget = player.streetBet + player.stack;
+      const minimum = gameState.currentBet === 0 ? BIG_BLIND : gameState.currentBet + gameState.minRaise;
+      if (strength > .62 && maxTarget >= minimum && Math.random() < .18) {
+        applyAction(player.id, "raise", Math.min(maxTarget, minimum));
+      } else {
+        applyAction(player.id, "call");
+      }
+    }
+
+    function maybePlayCpu() {
+      if (isOnline || !isHost || !gameState || !["preflop", "flop", "turn", "river"].includes(gameState.stage)) return;
+      const player = gameState.players.find((candidate) => candidate.id === gameState.turnId);
+      if (!player || !player.isCpu) return;
+      const key = `${gameState.handNumber}:${player.id}:${gameState.pending.length}:${gameState.currentBet}:${player.streetBet}`;
+      if (cpuTurnKey === key) return;
+      cpuTurnKey = key;
+      clearTimeout(cpuTimer);
+      cpuTimer = window.setTimeout(() => cpuDecision(player), 750 + Math.random() * 650);
+    }
+
+    function publicGameState() {
+      return {
+        ...gameState,
+        deck: undefined,
+        players: gameState.players.map((player) => ({
+          ...player,
+          cards: gameState.revealed && !player.folded ? player.cards : null
+        }))
+      };
+    }
+
+    async function broadcastPrivateCards(player) {
+      if (!isOnline || !isHost || !roomData || !player.cards.length) return;
+      const channel = await ensurePrivateChannel(player.id);
+      const { status } = await channel.send({
+        type: "broadcast",
+        event: "hole-cards",
+        payload: { userId: player.id, cards: player.cards }
+      });
+      if (status !== "ok") throw new Error(`Realtime no confirmó las cartas privadas (${status}).`);
+    }
+
+    async function publishGameState() {
+      if (!gameState) return;
+      renderGame();
+      maybePlayCpu();
+      if (!isOnline || !isHost || !roomChannelReady || !hostStateChannel) return;
+      try {
+        const { status } = await hostStateChannel.send({
+          type: "broadcast",
+          event: "game-state",
+          payload: { hostId: currentUserId, state: publicGameState() }
+        });
+        if (status !== "ok") throw new Error(`Realtime no confirmó el estado (${status}).`);
+        await Promise.all(gameState.players.map((player) => broadcastPrivateCards(player)));
+      } catch (error) {
+        showStatus($("#table-status"), `No se pudo sincronizar la mesa: ${error.message}`, true);
+      }
+    }
+
+    function renderGame() {
+      const state = isHost ? gameState : sharedGameState;
+      if (!state) return;
+      $("#table-title").textContent = isOnline ? "Mesa privada con amigos" : "Mesa contra CPU";
+      $("#street-label").textContent = `${STREET_NAMES[state.stage] || state.stage} · Mano ${state.handNumber}`;
+      $("#pot-amount").textContent = `${state.pot.toLocaleString("es-ES")} fichas`;
+      $("#action-message").textContent = state.message || "";
+      const community = $("#community-cards");
+      community.replaceChildren();
+      state.board.forEach((card) => community.append(formatCard(card)));
+      while (community.childElementCount < 5) community.append(renderCardBack());
+
+      const seats = $("#player-seats");
+      seats.replaceChildren();
+      seats.dataset.count = String(state.players.length);
+      const opponentPositions = OPPONENT_SEAT_LAYOUTS[state.players.length] || OPPONENT_SEAT_LAYOUTS[6];
+      let opponentIndex = 0;
+      state.players.forEach((player, index) => {
+        const card = document.createElement("article");
+        const isCurrent = state.turnId === player.id;
+        const position = player.id === currentUserId ? "bottom" : opponentPositions[opponentIndex++] || "left";
+        card.className = `seat seat-${position}${isCurrent ? " turn" : ""}${player.folded || player.stack === 0 ? " out" : ""}`;
+        const head = document.createElement("div");
+        head.className = "seat-head";
+        const name = document.createElement("span");
+        name.className = "seat-name";
+        name.textContent = `${index === state.dealerIndex ? "🔘 " : ""}${player.id === currentUserId ? "Tú" : player.name}`;
+        const stack = document.createElement("span");
+        stack.className = "seat-stack";
+        stack.textContent = player.stack.toLocaleString("es-ES");
+        stack.setAttribute("aria-label", `${player.stack} fichas`);
+        head.append(name, stack);
+        const note = document.createElement("p");
+        note.className = "seat-note";
+        note.textContent = player.folded ? "Retirado" : player.allIn ? "All-in" : player.lastAction || (isCurrent ? "Tu turno" : "");
+        const cards = document.createElement("div");
+        cards.className = "cards";
+        const visibleCards = state.revealed && !player.folded
+          ? player.cards
+          : player.id === currentUserId
+            ? myHoleCards
+            : null;
+        if (visibleCards && visibleCards.length === 2) visibleCards.forEach((holeCard) => cards.append(formatCard(holeCard)));
+        else if (!player.folded && player.stack > 0) {
+          cards.append(renderCardBack(), renderCardBack());
+        }
+        card.append(head, note, cards);
+        seats.append(card);
+      });
+
+      const actionAllowed = ["preflop", "flop", "turn", "river"].includes(state.stage)
+        && state.turnId === currentUserId && (!isOnline || roomChannelReady) && !hostUnavailable;
+      $("#table-actions").classList.toggle("hidden", !actionAllowed);
+      $("#next-hand").classList.toggle("hidden", !["hand-over", "finished"].includes(state.stage));
+      $("#next-hand").disabled = isOnline && !isHost;
+      $("#next-hand").textContent = state.stage === "finished" ? "Partida terminada" : isOnline && !isHost ? "Esperando al anfitrión" : "Siguiente mano";
+      if (actionAllowed) {
+        const player = state.players.find((candidate) => candidate.id === currentUserId);
+        const owed = Math.max(0, state.currentBet - player.streetBet);
+        const maxTarget = player.streetBet + player.stack;
+        const minimum = state.currentBet === 0 ? BIG_BLIND : state.currentBet + state.minRaise;
+        $("#call-action").textContent = owed ? `Igualar ${Math.min(owed, player.stack)}` : "Pasar";
+        $("#call-action").disabled = false;
+        $("#raise-target").min = String(minimum);
+        $("#raise-target").max = String(maxTarget);
+        if (Number($("#raise-target").value) < minimum || Number($("#raise-target").value) > maxTarget) {
+          $("#raise-target").value = String(Math.min(minimum, maxTarget));
+        }
+        $("#raise-action").disabled = maxTarget <= state.currentBet || maxTarget < minimum;
+        $("#all-in-action").disabled = player.stack <= 0;
+      }
+    }
+
+    async function takeAction(action, target) {
+      if (!gameState && !sharedGameState) return;
+      if (isHost) {
+        applyAction(currentUserId, action, target);
+        return;
+      }
+      if (!roomChannelReady || !roomChannel) {
+        showStatus($("#table-status"), "La conexión con la mesa no está lista.", true);
+        return;
+      }
+      const channel = await ensurePrivateChannel(currentUserId);
+      const { status } = await channel.send({
+        type: "broadcast",
+        event: "player-action",
+        payload: { action, target }
+      });
+      if (status !== "ok") showStatus($("#table-status"), `Realtime no confirmó la jugada (${status}).`, true);
+    }
+
+    function showHand() {
+      if (!gameState) return;
+      $("#table-status").textContent = isOnline ? "Las jugadas las coordina el anfitrión de la mesa." : "Las fichas son virtuales y solo valen para esta partida.";
+      $("#table-view").classList.remove("hidden");
+      renderGame();
+    }
+
+    async function sendStateRequest() {
+      if (!roomChannelReady || !roomChannel || isHost) return;
+      const { status } = await roomChannel.send({
+        type: "broadcast",
+        event: "state-request",
+        payload: { userId: currentUserId }
+      });
+      if (status !== "ok") showStatus($("#table-status"), "No se pudo pedir el estado de la mesa. Actualiza la página.", true);
+    }
+
+    async function ensurePrivateChannel(userId) {
+      if (privateChannels.has(userId)) return privateChannels.get(userId).ready;
+      const topic = `texas-private:${roomData.id}:${userId}`;
+      const channel = client.channel(topic, { config: { private: true } });
+      channel.on("broadcast", { event: "hole-cards" }, ({ payload }) => {
+        if (!payload || payload.userId !== currentUserId || !Array.isArray(payload.cards) || payload.cards.length !== 2) return;
+        myHoleCards = payload.cards;
+        renderGame();
+      })
+        .on("broadcast", { event: "player-action" }, ({ payload }) => {
+          if (isHost && payload) applyAction(userId, payload.action, payload.target);
+        })
+        .on("broadcast", { event: "player-left" }, () => {
+          if (isHost && gameState) applyAction(userId, "fold");
+        });
+      let resolveReady;
+      let rejectReady;
+      const ready = new Promise((resolve, reject) => {
+        resolveReady = resolve;
+        rejectReady = reject;
+      });
+      privateChannels.set(userId, { channel, ready });
+      channel.subscribe((status) => {
+        if (status === "SUBSCRIBED") resolveReady(channel);
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          rejectReady(new Error("No se pudo abrir el canal de cartas privadas."));
+        }
+      });
+      return ready;
+    }
+
+    async function closeRoomChannels() {
+      roomChannelReady = false;
+      if (roomChannel) {
+        const channel = roomChannel;
+        roomChannel = null;
+        roomChannelId = "";
+        await client.removeChannel(channel);
+      }
+      if (hostStateChannel) {
+        const channel = hostStateChannel;
+        hostStateChannel = null;
+        await client.removeChannel(channel);
+      }
+      await Promise.all([...privateChannels.values()].map(({ channel }) => client.removeChannel(channel)));
+      privateChannels.clear();
+    }
+
+    async function subscribeRoom(roomId) {
+      if (roomChannelId === roomId && roomChannel) return;
+      await closeRoomChannels();
+      roomChannelId = roomId;
+      roomChannel = client.channel(`texas:${roomId}`, { config: { private: true } });
+      roomChannel
+        .on("broadcast", { event: "state-request" }, ({ payload }) => {
+          if (isHost && payload && roomData && roomData.members.some((member) => member.userId === payload.userId)) {
+            publishGameState();
+          }
+        });
+      hostStateChannel = client.channel(`texas-host:${roomId}`, { config: { private: true } });
+      hostStateChannel
+        .on("broadcast", { event: "game-state" }, ({ payload }) => {
+          if (!payload || !payload.state || !roomData || payload.hostId !== roomData.hostId || isHost) return;
+          lastHostStateAt = Date.now();
+          if (hostUnavailable) showStatus($("#table-status"), "Conexión con el anfitrión restablecida.");
+          hostUnavailable = false;
+          sharedGameState = payload.state;
+          setView("#table-view");
+          renderGame();
+        })
+        .on("broadcast", { event: "table-closed" }, ({ payload }) => {
+          if (!isHost && payload && payload.hostId === roomData?.hostId) {
+            showStatus($("#lobby-status"), "El anfitrión ha cerrado la mesa.", true);
+            gameState = null;
+            sharedGameState = null;
+            roomData = null;
+            hostUnavailable = false;
+            lastHostStateAt = 0;
+            setView("#friends-view");
+            void loadLobbyHome();
+          }
+        });
+      let resolveReady;
+      let rejectReady;
+      const roomReady = new Promise((resolve, reject) => {
+        resolveReady = resolve;
+        rejectReady = reject;
+      });
+      roomChannel.subscribe((status) => {
+        if (status === "SUBSCRIBED") resolveReady();
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") rejectReady(new Error("No se pudo conectar con la sala. Comprueba Realtime en Supabase."));
+      });
+      let resolveStateReady;
+      let rejectStateReady;
+      const stateReady = new Promise((resolve, reject) => {
+        resolveStateReady = resolve;
+        rejectStateReady = reject;
+      });
+      hostStateChannel.subscribe((status) => {
+        if (status === "SUBSCRIBED") resolveStateReady();
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") rejectStateReady(new Error("No se pudo conectar con el canal de estado de la mesa."));
+      });
+      await Promise.all([roomReady, stateReady]);
+      roomChannelReady = true;
+      if (isHost && gameState) publishGameState();
+      else if (roomData && roomData.status === "started") sendStateRequest().catch(showOnlineError);
+      if (roomData && roomData.members.some((member) => member.userId === currentUserId)) {
+        await ensurePrivateChannel(currentUserId);
+      }
+    }
+
+    function showOnlineError(error) {
+      console.error("Error en la mesa Texas Hold’em.", error);
+      const target = $("#table-view").classList.contains("hidden") ? $("#lobby-status") : $("#table-status");
+      showStatus(target, error.message || "No se pudo conectar con la sala.", true);
+    }
+
+    function renderInvites(invites) {
+      const container = $("#invite-list");
+      container.replaceChildren();
+      if (!invites.length) {
+        const empty = document.createElement("p");
+        empty.className = "muted";
+        empty.textContent = "No tienes invitaciones pendientes.";
+        container.append(empty);
+        return;
+      }
+      invites.forEach((invite) => {
+        const card = document.createElement("article");
+        card.className = "invite-card";
+        const label = document.createElement("strong");
+        label.textContent = `${invite.inviter_name} te invita a jugar.`;
+        const controls = document.createElement("div");
+        controls.className = "actions";
+        const accept = document.createElement("button");
+        accept.className = "primary";
+        accept.type = "button";
+        accept.textContent = "Aceptar";
+        accept.addEventListener("click", () => respondInvite(invite.room_id, true));
+        const reject = document.createElement("button");
+        reject.type = "button";
+        reject.textContent = "Rechazar";
+        reject.addEventListener("click", () => respondInvite(invite.room_id, false));
+        controls.append(accept, reject);
+        card.append(label, controls);
+        container.append(card);
+      });
+    }
+
+    function renderRoom() {
+      if (!roomData) return;
+      $("#lobby-home").classList.add("hidden");
+      $("#room-panel").classList.remove("hidden");
+      $("#room-label").textContent = `Sala ${roomData.id.slice(0, 8)} · ${roomData.members.length}/${roomData.maxPlayers} jugadores`;
+      const list = $("#room-members");
+      list.replaceChildren();
+      roomData.members.forEach((member) => {
+        const item = document.createElement("li");
+        item.textContent = `${member.userId === roomData.hostId ? "👑 " : ""}${member.name}${member.userId === currentUserId ? " (tú)" : ""}`;
+        list.append(item);
+      });
+      $("#room-friends").classList.toggle("hidden", roomData.hostId !== currentUserId);
+      const friends = $("#friend-list");
+      friends.replaceChildren();
+      if (roomData.hostId === currentUserId) {
+        const memberIds = new Set(roomData.members.map((member) => member.userId));
+        const invitedIds = new Set(roomData.invites.map((invite) => invite.userId));
+        if (!roomFriends.length) {
+          const empty = document.createElement("p");
+          empty.className = "muted";
+          empty.textContent = "No tienes amigos agregados disponibles para invitar.";
+          friends.append(empty);
+        }
+        roomFriends.forEach((friend) => {
+          const card = document.createElement("div");
+          card.className = "friend-card";
+          const name = document.createElement("strong");
+          name.textContent = friend.display_name;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = memberIds.has(friend.user_id) ? "En la mesa" : invitedIds.has(friend.user_id) ? "Invitación enviada" : "Invitar";
+          button.disabled = memberIds.has(friend.user_id) || invitedIds.has(friend.user_id)
+            || roomData.members.length + roomData.invites.length >= roomData.maxPlayers;
+          button.addEventListener("click", () => inviteFriend(friend.user_id));
+          card.append(name, button);
+          friends.append(card);
+        });
+      }
+      $("#start-friends-game").classList.toggle("hidden", roomData.hostId !== currentUserId);
+      $("#start-friends-game").disabled = roomData.members.length < 2 || !roomChannelReady || roomData.status !== "waiting";
+      $("#start-friends-game").textContent = roomData.status === "started" ? "Partida iniciada" : roomData.members.length < 2 ? "Esperando a un amigo" : roomChannelReady ? "Empezar partida" : "Conectando…";
+      showStatus($("#lobby-status"), roomData.status === "waiting"
+        ? roomData.members.length < 2 ? "Invita a un amigo y espera a que se una." : "Cuando estéis listos, el anfitrión puede empezar."
+        : "La partida ya ha empezado. Esperando el estado de la mesa.", false);
+    }
+
+    async function loadLobbyHome() {
+      const [roomResult, invitesResult] = await Promise.all([
+        client.rpc("get_my_texas_room"),
+        client.rpc("get_my_texas_invites")
+      ]);
+      if (roomResult.error) throw roomResult.error;
+      if (invitesResult.error) throw invitesResult.error;
+      renderInvites(Array.isArray(invitesResult.data) ? invitesResult.data : []);
+      if (roomResult.data) {
+        await loadRoom(roomResult.data);
+      } else {
+        roomData = null;
+        isOnline = false;
+        isHost = false;
+        hostUnavailable = false;
+        lastHostStateAt = 0;
+        $("#room-panel").classList.add("hidden");
+        $("#lobby-home").classList.remove("hidden");
+      }
+    }
+
+    async function loadRoom(roomId) {
+      const { data, error } = await client.rpc("get_texas_room_details", { p_room_id: roomId });
+      if (error) throw error;
+      if (!data || !Array.isArray(data.members)) throw new Error("Supabase devolvió datos de sala no válidos.");
+      roomData = data;
+      isOnline = true;
+      isHost = roomData.hostId === currentUserId;
+      hostUnavailable = false;
+      lastHostStateAt = roomData.status === "started" && !isHost ? Date.now() : 0;
+      if (roomData.hostId === currentUserId) {
+        const result = await client.rpc("get_friend_list");
+        if (result.error) throw result.error;
+        roomFriends = Array.isArray(result.data) ? result.data : [];
+      } else {
+        roomFriends = [];
+      }
+      await subscribeRoom(roomId);
+      if (roomData.status === "waiting") {
+        setView("#friends-view");
+        renderRoom();
+      } else if (roomData.status === "started" && !gameState) {
+        setView("#table-view");
+        if (isHost) {
+          showStatus($("#table-status"), "El anfitrión debe mantener abierta la pestaña durante la partida. Crea otra mesa para volver a jugar.", true);
+        } else {
+          showStatus($("#table-status"), "Partida iniciada. Pidiendo las cartas y el estado al anfitrión…");
+          await sendStateRequest();
+        }
+      }
+    }
+
+    async function createRoom() {
+      try {
+        showStatus($("#lobby-status"), "Creando sala…");
+        const { data, error } = await client.rpc("create_texas_room");
+        if (error) throw error;
+        if (!data) throw new Error("Supabase no devolvió el identificador de la sala.");
+        await loadRoom(data);
+      } catch (error) {
+        showOnlineError(error);
+      }
+    }
+
+    async function inviteFriend(userId) {
+      try {
+        const { error } = await client.rpc("invite_texas_friend", { p_room_id: roomData.id, p_user_id: userId });
+        if (error) throw error;
+        await loadRoom(roomData.id);
+        showStatus($("#lobby-status"), "Invitación enviada.");
+      } catch (error) {
+        showOnlineError(error);
+      }
+    }
+
+    async function respondInvite(roomId, accept) {
+      try {
+        const { error } = await client.rpc("respond_texas_invite", { p_room_id: roomId, p_accept: accept });
+        if (error) throw error;
+        if (accept) await loadRoom(roomId);
+        else await loadLobbyHome();
+      } catch (error) {
+        showOnlineError(error);
+      }
+    }
+
+    async function leaveRoom() {
+      if (!roomData) return;
+      try {
+        const roomId = roomData.id;
+        if (roomData.hostId === currentUserId && roomChannelReady && hostStateChannel) {
+          await hostStateChannel.send({
+            type: "broadcast",
+            event: "table-closed",
+            payload: { hostId: currentUserId }
+          });
+        }
+        const { error } = await client.rpc("leave_texas_room", { p_room_id: roomId });
+        if (error) throw error;
+        await closeRoomChannels();
+        roomData = null;
+        isOnline = false;
+        isHost = false;
+        hostUnavailable = false;
+        lastHostStateAt = 0;
+        await loadLobbyHome();
+        setView("#friends-view");
+      } catch (error) {
+        showOnlineError(error);
+      }
+    }
+
+    async function startOnlineGame() {
+      if (!roomData || roomData.hostId !== currentUserId || roomData.members.length < 2 || !roomChannelReady) return;
+      try {
+        await Promise.all(roomData.members.map((member) => ensurePrivateChannel(member.userId)));
+        const { error } = await client.rpc("start_texas_room", { p_room_id: roomData.id });
+        if (error) throw error;
+        roomData.status = "started";
+        isOnline = true;
+        isHost = true;
+        const players = roomData.members.map((member) => ({ id: member.userId, name: member.name, isCpu: false }));
+        startMatch(players);
+        await publishGameState();
+      } catch (error) {
+        showOnlineError(error);
+      }
+    }
+
+    async function leaveTable() {
+      if (!isOnline || !roomData) {
+        gameState = null;
+        sharedGameState = null;
+        clearTimeout(cpuTimer);
+        setView("#home-view");
+        return;
+      }
+      try {
+        const roomId = roomData.id;
+        const hostId = roomData.hostId;
+        if (roomChannelReady) {
+          if (currentUserId === hostId) {
+            await hostStateChannel.send({
+              type: "broadcast",
+              event: "table-closed",
+              payload: { hostId }
+            });
+          } else {
+            const privateChannel = await ensurePrivateChannel(currentUserId);
+            await privateChannel.send({
+              type: "broadcast",
+              event: "player-left",
+              payload: {}
+            });
+          }
+        }
+        const { error } = await client.rpc("leave_texas_room", { p_room_id: roomId });
+        if (error) throw error;
+        await closeRoomChannels();
+        gameState = null;
+        sharedGameState = null;
+        roomData = null;
+        isOnline = false;
+        isHost = false;
+        myHoleCards = [];
+        hostUnavailable = false;
+        lastHostStateAt = 0;
+        setView("#friends-view");
+        await loadLobbyHome();
+      } catch (error) {
+        showStatus($("#table-status"), `No se pudo salir de la mesa: ${error.message}`, true);
+      }
+    }
+
+    function startCpuGame() {
+      clearTimeout(lobbyTimer);
+      client = getAccount()?.getClient() || null;
+      currentUserId = "local-player";
+      currentDisplayName = "Tú";
+      roomData = null;
+      isOnline = false;
+      isHost = true;
+      hostUnavailable = false;
+      lastHostStateAt = 0;
+      const cpuCount = Number($("#cpu-count").value);
+      const players = [{ id: currentUserId, name: currentDisplayName, isCpu: false }];
+      for (let index = 1; index <= cpuCount; index += 1) {
+        players.push({ id: `cpu-${index}`, name: `CPU ${index}`, isCpu: true });
+      }
+      startMatch(players);
+      showStatus($("#table-status"), "Las fichas de esta mesa no afectan al saldo del Casino Aljarafe.");
+    }
+
+    async function openFriendsMode() {
+      setView("#friends-view");
+      showStatus($("#lobby-status"), "Conectando con tu cuenta…");
+      try {
+        await checkSession();
+        await loadLobbyHome();
+        clearInterval(lobbyTimer);
+        lobbyTimer = window.setInterval(() => {
+          if (roomData && roomData.status === "started" && !isHost && !$("#table-view").classList.contains("hidden")) {
+            if (Date.now() - lastHostStateAt > 12000 && !hostUnavailable) {
+              hostUnavailable = true;
+              showStatus($("#table-status"), "No se recibe el estado del anfitrión. Comprueba su conexión o sal de la mesa.", true);
+              renderGame();
+            }
+            sendStateRequest().catch(showOnlineError);
+            return;
+          }
+          if ($("#friends-view").classList.contains("hidden")) return;
+          if (roomData && roomData.status === "started") {
+            if (!isHost) sendStateRequest().catch(showOnlineError);
+          } else if (roomData && roomData.status === "waiting") {
+            loadRoom(roomData.id).catch(showOnlineError);
+          } else {
+            loadLobbyHome().catch(showOnlineError);
+          }
+        }, 4000);
+      } catch (error) {
+        showOnlineError(error);
+      }
+    }
+
+    function initialize() {
+      client = getAccount()?.getClient() || null;
+      $("#start-cpu").addEventListener("click", startCpuGame);
+      $("#open-friends").addEventListener("click", openFriendsMode);
+      $("#back-home").addEventListener("click", () => {
+        clearInterval(lobbyTimer);
+        void closeRoomChannels();
+        roomData = null;
+        isOnline = false;
+        isHost = false;
+        hostUnavailable = false;
+        lastHostStateAt = 0;
+        setView("#home-view");
+      });
+      $("#create-room").addEventListener("click", createRoom);
+      $("#start-friends-game").addEventListener("click", startOnlineGame);
+      $("#refresh-room").addEventListener("click", () => {
+        if (roomData) loadRoom(roomData.id).catch(showOnlineError);
+        else loadLobbyHome().catch(showOnlineError);
+      });
+      $("#leave-room").addEventListener("click", leaveRoom);
+      $("#leave-table").addEventListener("click", leaveTable);
+      $("#next-hand").addEventListener("click", () => {
+        if (isHost) nextHand();
+      });
+      $("#fold-action").addEventListener("click", () => takeAction("fold").catch(showOnlineError));
+      $("#call-action").addEventListener("click", () => takeAction("call").catch(showOnlineError));
+      $("#raise-action").addEventListener("click", () => takeAction("raise", Number($("#raise-target").value)).catch(showOnlineError));
+      $("#all-in-action").addEventListener("click", () => takeAction("all-in").catch(showOnlineError));
+    }
+
+    window.addEventListener("DOMContentLoaded", initialize, { once: true });
+  </script>
+</body>
+</html>
