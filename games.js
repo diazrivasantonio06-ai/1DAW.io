@@ -74,6 +74,17 @@ window.GAMES = [
     src: "Juegos/Duelo_de_Torres_BETA.html"
   },
   {
+    id: "duelo-de-torres-t1",
+    title: "Duelo de Torres: Temp 1",
+    desc: "Prueba la nueva temporada de Duelo de Torres.",
+    emoji: "⚔️",
+    color: "#f2cd37",
+    tag: "BETA TEST Temp 1",
+    cover: "Juegos/Duelo_de_Torres.jpg",
+    allowedRoles: ["admin", "vip"],
+    src: "Juegos/Duelo%20Torres%20T1/Duelo_de_Torres_T1.html"
+  },
+  {
     id: "bloques",
     title: "Bloques",
     desc: "Juego de bloques tipo Tetris: completa líneas y consigue la mejor puntuación.",

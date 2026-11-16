@@ -5,8 +5,42 @@ const player = document.querySelector("#player");
 const frame = document.querySelector("#frame");
 const title = document.querySelector("#ptitle");
 const accountStatus = document.querySelector("#account-status");
-const games = Array.isArray(window.GAMES) ? window.GAMES : [];
+const gamesStatus = document.querySelector("#games-status");
+const allGames = Array.isArray(window.GAMES) ? window.GAMES : [];
+let games = [];
 let activeGame = null;
+
+function canAccessGame(game, profile) {
+  if (!Array.isArray(game.allowedRoles)) return true;
+  return game.allowedRoles.some((role) => (
+    (role === "admin" && profile.is_admin === true)
+    || (role === "vip" && profile.is_vip === true)
+  ));
+}
+
+async function getVisibleGames() {
+  const restrictedGames = allGames.filter((game) => Array.isArray(game.allowedRoles));
+  if (restrictedGames.length === 0 || !window.ARCADE_ACCOUNT.isConfigured()) {
+    return allGames.filter((game) => !Array.isArray(game.allowedRoles));
+  }
+
+  const client = window.ARCADE_ACCOUNT.getClient();
+  if (!client) throw new Error("No se pudo cargar la librería de Supabase.");
+
+  const { data: sessionData, error: sessionError } = await client.auth.getSession();
+  if (sessionError) throw sessionError;
+  if (!sessionData.session) {
+    return allGames.filter((game) => !Array.isArray(game.allowedRoles));
+  }
+
+  const { data: profile, error: profileError } = await client.from("profiles")
+    .select("is_admin,is_vip")
+    .eq("id", sessionData.session.user.id)
+    .single();
+  if (profileError) throw profileError;
+
+  return allGames.filter((game) => canAccessGame(game, profile));
+}
 
 function renderGames() {
   games.forEach((game) => {
@@ -136,5 +170,18 @@ function syncRoute() {
 }
 window.addEventListener("hashchange", syncRoute);
 document.querySelector("[data-year]").textContent = new Date().getFullYear();
-renderGames();
-syncRoute();
+
+async function initializeGames() {
+  try {
+    games = await getVisibleGames();
+  } catch (error) {
+    games = allGames.filter((game) => !Array.isArray(game.allowedRoles));
+    gamesStatus.hidden = false;
+    gamesStatus.dataset.error = "true";
+    gamesStatus.textContent = `No se pudo comprobar el acceso a los juegos beta: ${error.message}`;
+  }
+  renderGames();
+  syncRoute();
+}
+
+initializeGames();

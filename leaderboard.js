@@ -9,7 +9,7 @@ const numberFormat = new Intl.NumberFormat("es-ES");
 
 function populateGameFilter() {
   const games = Array.isArray(window.GAMES) ? window.GAMES : [];
-  games.forEach((game) => {
+  games.filter((game) => !Array.isArray(game.allowedRoles)).forEach((game) => {
     const option = document.createElement("option");
     option.value = game.id;
     option.textContent = game.title;
