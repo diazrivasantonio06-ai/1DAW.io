@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#11101e">
   <meta name="description" content="Juegos hechos por amigos, para jugar desde el navegador. Entra, elige un cartucho y empieza la partida.">
   <title>1DAW.io — Juegos hechos entre amigos</title>
-  <link rel="stylesheet" href="site.css?v=20261113-7">
+  <link rel="stylesheet" href="site.css?v=20261116-2">
   <style>
     .hero {
       position: relative;
@@ -79,7 +79,7 @@
   <script defer src="supabase-config.js"></script>
   <script defer src="account.js"></script>
   <script defer src="presence.js"></script>
-  <script defer src="friends.js?v=6"></script>
+  <script defer src="friends.js?v=7"></script>
   <script src="games.js?v=3"></script>
   <script defer src="index.js"></script>
 </head>
@@ -87,7 +87,10 @@
   <div class="wrap">
     <header class="top">
       <a class="logo" href="index.html" aria-current="page">1DAW<span>.</span>io</a>
-      <nav aria-label="Navegación principal">
+      <button class="nav-toggle" type="button" aria-controls="primary-navigation" aria-expanded="false">
+        <span class="nav-toggle-icon" aria-hidden="true">☰</span><span>Menú</span>
+      </button>
+      <nav id="primary-navigation" aria-label="Navegación principal">
         <a href="juegos.html">Juegos</a>
         <a href="leaderboard.html">Clasificación</a>
         <a href="novedades.html">Novedades</a>

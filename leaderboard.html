@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#11101e">
   <meta name="description" content="Consulta las estadísticas y puntuaciones de la comunidad de 1DAW.io.">
   <title>Clasificación | 1DAW.io</title>
-  <link rel="stylesheet" href="site.css?v=20261113-7">
+  <link rel="stylesheet" href="site.css?v=20261116-2">
   <style>
     .page-intro { padding: clamp(2.5rem, 7vw, 5rem) 0 2rem; }
     .page-intro h1 { font-size: clamp(2rem, 6vw, 3.8rem); }
@@ -30,7 +30,7 @@
   <script defer src="supabase-config.js"></script>
   <script defer src="account.js"></script>
   <script defer src="presence.js"></script>
-  <script defer src="friends.js?v=6"></script>
+  <script defer src="friends.js?v=7"></script>
   <script defer src="games.js?v=3"></script>
   <script defer src="leaderboard.js?v=20261113-2"></script>
 </head>
@@ -38,7 +38,10 @@
   <div class="wrap">
     <header class="top">
       <a class="logo" href="index.html">1DAW<span>.</span>io</a>
-      <nav aria-label="Navegación principal">
+      <button class="nav-toggle" type="button" aria-controls="primary-navigation" aria-expanded="false">
+        <span class="nav-toggle-icon" aria-hidden="true">☰</span><span>Menú</span>
+      </button>
+      <nav id="primary-navigation" aria-label="Navegación principal">
         <a href="index.html">Inicio</a>
         <a href="juegos.html">Juegos</a>
         <a href="leaderboard.html" aria-current="page">Clasificación</a>

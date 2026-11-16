@@ -35,6 +35,8 @@
   const widget = document.createElement("aside");
   widget.className = "friends-widget";
   widget.setAttribute("aria-label", "Amigos y chats");
+  const nav = document.querySelector(".top nav");
+  const navToggle = document.querySelector(".nav-toggle");
   const dock = document.createElement("button");
   dock.className = "friends-dock";
   dock.type = "button";
@@ -181,6 +183,13 @@
     searchInput.disabled = !userId;
     addFriendButton.disabled = !userId;
     toolbarMenuButton.disabled = !userId;
+  }
+
+  function setNavigationOpen(isOpen) {
+    const header = document.querySelector(".top");
+    if (!header || !navToggle) return;
+    header.classList.toggle("is-menu-open", isOpen);
+    navToggle.setAttribute("aria-expanded", String(isOpen));
   }
 
   function renderPerson(person, options) {
@@ -847,10 +856,24 @@
       updateDock();
       dock.focus();
     }
+    if (event.key === "Escape" && navToggle && navToggle.getAttribute("aria-expanded") === "true") {
+      setNavigationOpen(false);
+      navToggle.focus();
+    }
   });
   window.addEventListener("pagehide", closeChatChannel);
 
-  document.body.append(widget);
+  if (nav && navToggle) {
+    nav.append(widget);
+    navToggle.addEventListener("click", () => {
+      setNavigationOpen(navToggle.getAttribute("aria-expanded") !== "true");
+    });
+    nav.addEventListener("click", (event) => {
+      if (event.target.closest("a")) setNavigationOpen(false);
+    });
+  } else {
+    document.body.append(widget);
+  }
   updateDock();
   if (!window.ARCADE_ACCOUNT || !window.ARCADE_ACCOUNT.isConfigured()) {
     render();
