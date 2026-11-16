@@ -25,7 +25,7 @@ window.GAMES = [
     desc: "Battle royale: sé el último en pie, consigue armas y construye para sobrevivir.",
     emoji: "🏝️",
     color: "#168a8a",
-    tag: "Alpha 1.0",
+    tag: "T0 - C1 · Alpha 1.5",
     cover: "Juegos/claude-nite.png",
     leaderboardStats: [
       { key: "games_played", label: "Partidas", source: "session" },
@@ -36,7 +36,7 @@ window.GAMES = [
       { key: "best_placement", label: "Mejor puesto", source: "session" },
       { key: "total_seconds", label: "Tiempo jugado", source: "session" }
     ],
-    src: "Juegos/Claude-nite%20Alpha%201.0.html"
+    src: "Juegos/Claude-nite%20T0%20C1%20Alpha%201.5.html"
   },
   {
     id: "patata-espacial",
