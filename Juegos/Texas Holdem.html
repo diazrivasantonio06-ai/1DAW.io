@@ -207,7 +207,7 @@
 
     <section id="home-view" class="panel">
       <h2>Elige una mesa</h2>
-      <p class="hint">Cada partida empieza con 1.000 fichas. Las ciegas son 10/20 y no afectan al saldo del Casino Aljarafe.</p>
+      <p class="hint">Cada partida requiere una entrada de 1.000 fichas de tu saldo del Casino Aljarafe. El stack restante se abona al salir y aparece en la clasificación.</p>
       <div class="toolbar">
         <label for="cpu-count">Rivales CPU
           <select id="cpu-count">
@@ -228,7 +228,7 @@
       <div class="table-top">
         <div>
           <h2>Mesa con amigos</h2>
-          <p class="hint">Crea una sala privada e invita hasta a cinco amigos agregados en 1DAW.io.</p>
+          <p class="hint">Crea una sala privada e invita hasta a cinco amigos agregados en 1DAW.io. Cada jugador reserva 1.000 fichas de su saldo.</p>
         </div>
         <button id="back-home" type="button">Volver</button>
       </div>
@@ -322,6 +322,9 @@
     let myHoleCards = [];
     let cpuTimer = 0;
     let cpuTurnKey = "";
+    let stakeSessionId = null;
+    let stakeSettled = false;
+    let stakeSettlementPromise = null;
 
     function showStatus(element, text, isError = false) {
       element.textContent = text;
@@ -352,11 +355,59 @@
       if (!client) throw new Error("No se pudo cargar la cuenta de 1DAW.io.");
       const { data, error } = await client.auth.getSession();
       if (error) throw error;
-      if (!data.session) throw new Error("Inicia sesión en 1DAW.io para jugar con amigos.");
+      if (!data.session) throw new Error("Inicia sesión en 1DAW.io para usar el saldo compartido de Texas.");
       currentUserId = data.session.user.id;
       const profile = await client.from("profiles").select("display_name").eq("id", currentUserId).single();
       if (profile.error) throw profile.error;
       currentDisplayName = profile.data.display_name;
+    }
+
+    function newStakeId() {
+      return crypto.randomUUID();
+    }
+
+    async function reserveRoomStake(roomId) {
+      const sessionId = newStakeId();
+      const { error } = await client.rpc("reserve_texas_room_seat", {
+        p_room_id: roomId,
+        p_stake_id: sessionId
+      });
+      if (error) throw error;
+      stakeSessionId = sessionId;
+      stakeSettled = false;
+      return sessionId;
+    }
+
+    async function settleStake(sessionId, finalStack) {
+      if (!sessionId) throw new Error("No se encontró la entrada de esta partida.");
+      const { data, error } = await client.rpc("settle_my_texas_stake", {
+        p_session_id: sessionId,
+        p_final_stack: finalStack
+      });
+      if (error) throw error;
+      if (stakeSessionId === sessionId) stakeSettled = true;
+      return data;
+    }
+
+    async function settleFinishedGame(state) {
+      if (!state || state.stage !== "finished" || !stakeSessionId || stakeSettled || stakeSettlementPromise) return;
+      const player = state.players.find((candidate) => candidate.id === currentUserId);
+      if (!player) return;
+      const sessionId = stakeSessionId;
+      stakeSettlementPromise = settleStake(sessionId, player.stack);
+      try {
+        const balance = await stakeSettlementPromise;
+        showStatus($("#table-status"), `Partida terminada. Se han abonado ${player.stack.toLocaleString("es-ES")} fichas. Saldo: ${Number(balance).toLocaleString("es-ES")}.`);
+      } catch (error) {
+        showStatus($("#table-status"), `No se pudo ingresar el stack final: ${error.message}. Pulsa «Salir de la mesa» para reintentarlo.`, true);
+      } finally {
+        stakeSettlementPromise = null;
+      }
+    }
+
+    function getCurrentPlayerStack(state = null) {
+      const activeState = state || (isHost ? gameState : sharedGameState);
+      return activeState?.players?.find((player) => player.id === currentUserId)?.stack ?? STARTING_STACK;
     }
 
     function formatCard(card) {
@@ -817,6 +868,7 @@
       if (!gameState) return;
       renderGame();
       maybePlayCpu();
+      void settleFinishedGame(gameState);
       if (!isOnline || !isHost || !roomChannelReady || !hostStateChannel) return;
       try {
         const { status } = await hostStateChannel.send({
@@ -925,7 +977,7 @@
 
     function showHand() {
       if (!gameState) return;
-      $("#table-status").textContent = isOnline ? "Las jugadas las coordina el anfitrión de la mesa." : "Las fichas son virtuales y solo valen para esta partida.";
+      $("#table-status").textContent = isOnline ? "Banca compartida: 1.000 fichas reservadas; el stack restante se ingresa al salir." : "Banca compartida: 1.000 fichas reservadas; el stack restante se ingresa al salir.";
       $("#table-view").classList.remove("hidden");
       renderGame();
     }
@@ -1009,9 +1061,24 @@
           sharedGameState = payload.state;
           setView("#table-view");
           renderGame();
+          void settleFinishedGame(sharedGameState);
         })
-        .on("broadcast", { event: "table-closed" }, ({ payload }) => {
+        .on("broadcast", { event: "table-closed" }, async ({ payload }) => {
           if (!isHost && payload && payload.hostId === roomData?.hostId) {
+            const closedRoomId = roomData.id;
+            try {
+              const { error } = await client.rpc("leave_texas_room", {
+                p_room_id: closedRoomId,
+                p_final_stack: getCurrentPlayerStack(sharedGameState)
+              });
+              if (error) throw error;
+            } catch (error) {
+              showStatus($("#table-status"), `No se pudo devolver el stack de la mesa cerrada: ${error.message}`, true);
+              return;
+            }
+            await closeRoomChannels();
+            stakeSessionId = null;
+            stakeSettled = false;
             showStatus($("#lobby-status"), "El anfitrión ha cerrado la mesa.", true);
             gameState = null;
             sharedGameState = null;
@@ -1078,11 +1145,19 @@
         accept.className = "primary";
         accept.type = "button";
         accept.textContent = "Aceptar";
-        accept.addEventListener("click", () => respondInvite(invite.room_id, true));
+        accept.addEventListener("click", () => {
+          accept.disabled = true;
+          reject.disabled = true;
+          respondInvite(invite.room_id, true);
+        });
         const reject = document.createElement("button");
         reject.type = "button";
         reject.textContent = "Rechazar";
-        reject.addEventListener("click", () => respondInvite(invite.room_id, false));
+        reject.addEventListener("click", () => {
+          accept.disabled = true;
+          reject.disabled = true;
+          respondInvite(invite.room_id, false);
+        });
         controls.append(accept, reject);
         card.append(label, controls);
         container.append(card);
@@ -1148,8 +1223,12 @@
         await loadRoom(roomResult.data);
       } else {
         roomData = null;
+        stakeSessionId = null;
+        stakeSettled = false;
         isOnline = false;
         isHost = false;
+        $("#room-panel").classList.add("hidden");
+        $("#lobby-home").classList.remove("hidden");
         hostUnavailable = false;
         lastHostStateAt = 0;
         $("#room-panel").classList.add("hidden");
@@ -1164,8 +1243,26 @@
       roomData = data;
       isOnline = true;
       isHost = roomData.hostId === currentUserId;
+      const currentMember = roomData.members.find((member) => member.userId === currentUserId);
+      stakeSessionId = currentMember?.stakeId || null;
+      stakeSettled = false;
       hostUnavailable = false;
       lastHostStateAt = roomData.status === "started" && !isHost ? Date.now() : 0;
+      if (roomData.status === "closed") {
+        const { error: leaveError } = await client.rpc("leave_texas_room", {
+          p_room_id: roomId,
+          p_final_stack: getCurrentPlayerStack(sharedGameState)
+        });
+        if (leaveError) throw leaveError;
+        await closeRoomChannels();
+        stakeSessionId = null;
+        stakeSettled = false;
+        roomData = null;
+        isOnline = false;
+        isHost = false;
+        await loadLobbyHome();
+        return;
+      }
       if (roomData.hostId === currentUserId) {
         const result = await client.rpc("get_friend_list");
         if (result.error) throw result.error;
@@ -1189,14 +1286,42 @@
     }
 
     async function createRoom() {
+      let roomId = null;
+      const createButton = $("#create-room");
+      createButton.disabled = true;
       try {
         showStatus($("#lobby-status"), "Creando sala…");
         const { data, error } = await client.rpc("create_texas_room");
         if (error) throw error;
         if (!data) throw new Error("Supabase no devolvió el identificador de la sala.");
-        await loadRoom(data);
+        roomId = data;
+        await loadRoom(roomId);
+        if (!stakeSessionId) {
+          await reserveRoomStake(roomId);
+          await loadRoom(roomId);
+        }
+        showStatus($("#lobby-status"), "Entrada de 1.000 fichas reservada. Se abonará el stack restante al salir.");
       } catch (error) {
+        if (roomId) {
+          const { error: cleanupError } = await client.rpc("leave_texas_room", {
+            p_room_id: roomId,
+            p_final_stack: STARTING_STACK
+          });
+          if (cleanupError) console.error("No se pudo limpiar la sala sin entrada.", cleanupError);
+          else {
+            await closeRoomChannels();
+            roomData = null;
+            stakeSessionId = null;
+            stakeSettled = false;
+            isOnline = false;
+            isHost = false;
+            $("#room-panel").classList.add("hidden");
+            $("#lobby-home").classList.remove("hidden");
+          }
+        }
         showOnlineError(error);
+      } finally {
+        createButton.disabled = false;
       }
     }
 
@@ -1212,12 +1337,33 @@
     }
 
     async function respondInvite(roomId, accept) {
+      let joined = false;
       try {
         const { error } = await client.rpc("respond_texas_invite", { p_room_id: roomId, p_accept: accept });
         if (error) throw error;
-        if (accept) await loadRoom(roomId);
+        if (accept) {
+          joined = true;
+          await reserveRoomStake(roomId);
+          await loadRoom(roomId);
+          showStatus($("#lobby-status"), "Entrada de 1.000 fichas reservada. Se abonará el stack restante al salir.");
+        }
         else await loadLobbyHome();
       } catch (error) {
+        if (joined) {
+          const { error: cleanupError } = await client.rpc("leave_texas_room", {
+            p_room_id: roomId,
+            p_final_stack: STARTING_STACK
+          });
+          if (cleanupError) console.error("No se pudo limpiar la sala tras rechazar la reserva.", cleanupError);
+          else {
+            await closeRoomChannels();
+            roomData = null;
+            stakeSessionId = null;
+            stakeSettled = false;
+            isOnline = false;
+            isHost = false;
+          }
+        }
         showOnlineError(error);
       }
     }
@@ -1233,8 +1379,13 @@
             payload: { hostId: currentUserId }
           });
         }
-        const { error } = await client.rpc("leave_texas_room", { p_room_id: roomId });
+        const { error } = await client.rpc("leave_texas_room", {
+          p_room_id: roomId,
+          p_final_stack: getCurrentPlayerStack()
+        });
         if (error) throw error;
+        stakeSessionId = null;
+        stakeSettled = false;
         await closeRoomChannels();
         roomData = null;
         isOnline = false;
@@ -1267,10 +1418,21 @@
 
     async function leaveTable() {
       if (!isOnline || !roomData) {
+        try {
+          if (stakeSessionId && !stakeSettled) {
+            await settleStake(stakeSessionId, getCurrentPlayerStack(gameState));
+          }
+        } catch (error) {
+          showStatus($("#table-status"), `No se pudo ingresar el stack: ${error.message}`, true);
+          return;
+        }
+        stakeSessionId = null;
+        stakeSettled = false;
         gameState = null;
         sharedGameState = null;
         clearTimeout(cpuTimer);
         setView("#home-view");
+        showStatus($("#home-status"), "Stack ingresado en tu saldo del Casino Aljarafe. Actualiza la clasificación para verlo.");
         return;
       }
       try {
@@ -1292,8 +1454,13 @@
             });
           }
         }
-        const { error } = await client.rpc("leave_texas_room", { p_room_id: roomId });
+        const { error } = await client.rpc("leave_texas_room", {
+          p_room_id: roomId,
+          p_final_stack: getCurrentPlayerStack()
+        });
         if (error) throw error;
+        stakeSessionId = null;
+        stakeSettled = false;
         await closeRoomChannels();
         gameState = null;
         sharedGameState = null;
@@ -1310,23 +1477,34 @@
       }
     }
 
-    function startCpuGame() {
+    async function startCpuGame() {
       clearTimeout(lobbyTimer);
-      client = getAccount()?.getClient() || null;
-      currentUserId = "local-player";
-      currentDisplayName = "Tú";
-      roomData = null;
-      isOnline = false;
-      isHost = true;
-      hostUnavailable = false;
-      lastHostStateAt = 0;
-      const cpuCount = Number($("#cpu-count").value);
-      const players = [{ id: currentUserId, name: currentDisplayName, isCpu: false }];
-      for (let index = 1; index <= cpuCount; index += 1) {
-        players.push({ id: `cpu-${index}`, name: `CPU ${index}`, isCpu: true });
+      $("#start-cpu").disabled = true;
+      showStatus($("#home-status"), "Reservando 1.000 fichas…");
+      try {
+        await checkSession();
+        const sessionId = newStakeId();
+        const { error } = await client.rpc("begin_my_texas_stake", { p_session_id: sessionId });
+        if (error) throw error;
+        stakeSessionId = sessionId;
+        stakeSettled = false;
+        roomData = null;
+        isOnline = false;
+        isHost = true;
+        hostUnavailable = false;
+        lastHostStateAt = 0;
+        const cpuCount = Number($("#cpu-count").value);
+        const players = [{ id: currentUserId, name: currentDisplayName, isCpu: false }];
+        for (let index = 1; index <= cpuCount; index += 1) {
+          players.push({ id: `cpu-${index}`, name: `CPU ${index}`, isCpu: true });
+        }
+        startMatch(players);
+        showStatus($("#table-status"), "Entrada de 1.000 fichas reservada. El stack restante se abonará a tu cuenta al salir.");
+      } catch (error) {
+        showStatus($("#home-status"), error.message || "No se pudo reservar la entrada de Texas.", true);
+      } finally {
+        $("#start-cpu").disabled = false;
       }
-      startMatch(players);
-      showStatus($("#table-status"), "Las fichas de esta mesa no afectan al saldo del Casino Aljarafe.");
     }
 
     async function openFriendsMode() {

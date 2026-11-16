@@ -2025,6 +2025,138 @@ grant execute on function public.leave_game_lobby(uuid) to authenticated;
 grant execute on function public.cancel_game_lobby_invite(uuid, uuid) to authenticated;
 grant execute on function public.start_game_lobby(uuid) to authenticated;
 
+create table if not exists public.texas_stakes (
+  session_id uuid primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  buy_in integer not null default 1000 check (buy_in = 1000),
+  settled boolean not null default false,
+  created_at timestamptz not null default now(),
+  settled_at timestamptz
+);
+
+alter table public.texas_stakes enable row level security;
+revoke all on public.texas_stakes from public, anon, authenticated;
+
+create or replace function public.begin_my_texas_stake(p_session_id uuid)
+returns numeric
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_existing_user uuid;
+  v_settled boolean;
+  v_balance numeric;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  if p_session_id is null then
+    raise exception 'La sesión de Texas no es válida.';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user_id::text, 0));
+  select stake.user_id, stake.settled into v_existing_user, v_settled
+  from public.texas_stakes as stake
+  where stake.session_id = p_session_id
+  for update;
+  if found then
+    if v_existing_user <> v_user_id then
+      raise exception 'La sesión de Texas pertenece a otro usuario.';
+    end if;
+    if v_settled then
+      raise exception 'La entrada de esta partida ya fue liquidada.';
+    end if;
+    select casino.balance into v_balance
+    from public.casino_balances as casino
+    where casino.user_id = v_user_id;
+    if v_balance is null then
+      raise exception 'No se encontró el saldo de la cuenta.';
+    end if;
+    return v_balance;
+  end if;
+
+  insert into public.casino_balances (user_id, balance)
+  values (v_user_id, 1000)
+  on conflict (user_id) do nothing;
+  select casino.balance into v_balance
+  from public.casino_balances as casino
+  where casino.user_id = v_user_id
+  for update;
+  if v_balance < 1000 then
+    raise exception 'Necesitas al menos 1.000 fichas en tu saldo del Casino Aljarafe para sentarte.';
+  end if;
+  update public.casino_balances
+  set balance = balance - 1000, updated_at = now()
+  where user_id = v_user_id
+  returning balance into v_balance;
+  insert into public.texas_stakes (session_id, user_id)
+  values (p_session_id, v_user_id);
+  return v_balance;
+end;
+$$;
+
+create or replace function public.settle_texas_stake_for(
+  p_user_id uuid,
+  p_session_id uuid,
+  p_final_stack integer
+)
+returns numeric
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_stake public.texas_stakes%rowtype;
+  v_balance numeric;
+begin
+  if p_final_stack is null or p_final_stack < 0 or p_final_stack > 6000 then
+    raise exception 'El stack final de Texas no es válido.';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_user_id::text, 0));
+  select * into v_stake
+  from public.texas_stakes as stake
+  where stake.session_id = p_session_id and stake.user_id = p_user_id
+  for update;
+  if not found then
+    raise exception 'No se encontró la entrada de esta partida de Texas.';
+  end if;
+  if not v_stake.settled then
+    update public.casino_balances
+    set balance = balance + p_final_stack, updated_at = now()
+    where user_id = p_user_id
+    returning balance into v_balance;
+    if not found then
+      raise exception 'No se encontró el saldo de la cuenta.';
+    end if;
+    update public.texas_stakes
+    set settled = true, settled_at = now()
+    where session_id = p_session_id;
+    return v_balance;
+  end if;
+  select casino.balance into v_balance
+  from public.casino_balances as casino
+  where casino.user_id = p_user_id;
+  return v_balance;
+end;
+$$;
+
+create or replace function public.settle_my_texas_stake(p_session_id uuid, p_final_stack integer)
+returns numeric
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  return public.settle_texas_stake_for(v_user_id, p_session_id, p_final_stack);
+end;
+$$;
+
 create table if not exists public.texas_rooms (
   id uuid primary key default gen_random_uuid(),
   host_id uuid not null references auth.users (id) on delete cascade,
@@ -2037,8 +2169,63 @@ create table if not exists public.texas_room_members (
   room_id uuid not null references public.texas_rooms (id) on delete cascade,
   user_id uuid not null references auth.users (id) on delete cascade,
   joined_at timestamptz not null default now(),
+  stake_id uuid,
   primary key (room_id, user_id)
 );
+
+alter table public.texas_room_members add column if not exists stake_id uuid;
+create unique index if not exists texas_room_members_stake_id_idx
+  on public.texas_room_members (stake_id)
+  where stake_id is not null;
+
+create or replace function public.reserve_texas_room_seat(p_room_id uuid, p_stake_id uuid)
+returns numeric
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_existing_stake_id uuid;
+  v_settled boolean;
+  v_balance numeric;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  select member.stake_id into v_existing_stake_id
+  from public.texas_room_members as member
+  join public.texas_rooms as room on room.id = member.room_id
+  where member.room_id = p_room_id and member.user_id = v_user_id and room.status = 'waiting'
+  for update of member, room;
+  if not found then
+    raise exception 'No perteneces a una mesa abierta para reservar.';
+  end if;
+  if v_existing_stake_id is not null then
+    if v_existing_stake_id <> p_stake_id then
+      raise exception 'Ya has reservado la entrada de esta mesa.';
+    end if;
+    select stake.settled into v_settled
+    from public.texas_stakes as stake
+    where stake.session_id = v_existing_stake_id and stake.user_id = v_user_id;
+    if not found or v_settled then
+      raise exception 'La reserva de esta mesa ya se liquidó.';
+    end if;
+    select casino.balance into v_balance
+    from public.casino_balances as casino
+    where casino.user_id = v_user_id;
+    if v_balance is null then
+      raise exception 'No se encontró el saldo de la cuenta.';
+    end if;
+    return v_balance;
+  end if;
+  v_balance := public.begin_my_texas_stake(p_stake_id);
+  update public.texas_room_members
+  set stake_id = p_stake_id
+  where room_id = p_room_id and user_id = v_user_id;
+  return v_balance;
+end;
+$$;
 
 create table if not exists public.texas_room_invites (
   room_id uuid not null references public.texas_rooms (id) on delete cascade,
@@ -2189,7 +2376,7 @@ as $$
   select room.id
   from public.texas_rooms as room
   join public.texas_room_members as member on member.room_id = room.id
-  where member.user_id = auth.uid() and room.status in ('waiting', 'started')
+  where member.user_id = auth.uid() and room.status in ('waiting', 'started', 'closed')
   order by room.created_at desc
   limit 1;
 $$;
@@ -2252,7 +2439,7 @@ begin
   end if;
   select coalesce(
     jsonb_agg(
-      jsonb_build_object('userId', member.user_id, 'name', profile.display_name)
+      jsonb_build_object('userId', member.user_id, 'name', profile.display_name, 'stakeId', member.stake_id)
       order by member.joined_at
     ),
     '[]'::jsonb
@@ -2417,6 +2604,20 @@ begin
   if v_member_count < 2 then
     raise exception 'Se necesitan al menos dos jugadores para empezar.';
   end if;
+  if exists (
+    select 1
+    from public.texas_room_members as member
+    where member.room_id = p_room_id
+      and not exists (
+        select 1
+        from public.texas_stakes as stake
+        where stake.session_id = member.stake_id
+          and stake.user_id = member.user_id
+          and not stake.settled
+      )
+  ) then
+    raise exception 'Todos los jugadores deben reservar 1.000 fichas antes de empezar.';
+  end if;
 
   update public.texas_room_invites set status = 'cancelled'
   where room_id = p_room_id and status = 'pending';
@@ -2424,7 +2625,9 @@ begin
 end;
 $$;
 
-create or replace function public.leave_texas_room(p_room_id uuid)
+drop function if exists public.leave_texas_room(uuid);
+
+create or replace function public.leave_texas_room(p_room_id uuid, p_final_stack integer)
 returns void
 language plpgsql
 security definer
@@ -2433,9 +2636,13 @@ as $$
 declare
   v_user_id uuid := auth.uid();
   v_room public.texas_rooms%rowtype;
+  v_stake_id uuid;
 begin
   if v_user_id is null then
     raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  if p_final_stack is null or p_final_stack < 0 or p_final_stack > 6000 then
+    raise exception 'El stack final de Texas no es válido.';
   end if;
   select room.* into v_room
   from public.texas_rooms as room
@@ -2445,16 +2652,33 @@ begin
   if not found then
     raise exception 'No perteneces a esta mesa.';
   end if;
+  select member.stake_id into v_stake_id
+  from public.texas_room_members as member
+  where member.room_id = p_room_id and member.user_id = v_user_id
+  for update;
+  if v_stake_id is not null then
+    perform public.settle_texas_stake_for(v_user_id, v_stake_id, p_final_stack);
+  end if;
   if v_room.host_id = v_user_id then
     update public.texas_rooms set status = 'closed' where id = p_room_id;
     update public.texas_room_invites set status = 'cancelled'
     where room_id = p_room_id and status = 'pending';
-    delete from public.texas_room_members where room_id = p_room_id;
+    delete from public.texas_room_members
+    where room_id = p_room_id and user_id = v_user_id;
   else
     delete from public.texas_room_members
     where room_id = p_room_id and user_id = v_user_id;
   end if;
 end;
+$$;
+
+create or replace function public.leave_texas_room(p_room_id uuid)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  select public.leave_texas_room(p_room_id, 1000);
 $$;
 
 revoke all on function public.create_texas_room() from public, anon, authenticated;
@@ -2464,7 +2688,12 @@ revoke all on function public.get_texas_room_details(uuid) from public, anon, au
 revoke all on function public.invite_texas_friend(uuid, uuid) from public, anon, authenticated;
 revoke all on function public.respond_texas_invite(uuid, boolean) from public, anon, authenticated;
 revoke all on function public.start_texas_room(uuid) from public, anon, authenticated;
+revoke all on function public.leave_texas_room(uuid, integer) from public, anon, authenticated;
 revoke all on function public.leave_texas_room(uuid) from public, anon, authenticated;
+revoke all on function public.begin_my_texas_stake(uuid) from public, anon, authenticated;
+revoke all on function public.reserve_texas_room_seat(uuid, uuid) from public, anon, authenticated;
+revoke all on function public.settle_my_texas_stake(uuid, integer) from public, anon, authenticated;
+revoke all on function public.settle_texas_stake_for(uuid, uuid, integer) from public, anon, authenticated;
 grant execute on function public.create_texas_room() to authenticated;
 grant execute on function public.get_my_texas_room() to authenticated;
 grant execute on function public.get_my_texas_invites() to authenticated;
@@ -2472,7 +2701,11 @@ grant execute on function public.get_texas_room_details(uuid) to authenticated;
 grant execute on function public.invite_texas_friend(uuid, uuid) to authenticated;
 grant execute on function public.respond_texas_invite(uuid, boolean) to authenticated;
 grant execute on function public.start_texas_room(uuid) to authenticated;
+grant execute on function public.leave_texas_room(uuid, integer) to authenticated;
 grant execute on function public.leave_texas_room(uuid) to authenticated;
+grant execute on function public.begin_my_texas_stake(uuid) to authenticated;
+grant execute on function public.reserve_texas_room_seat(uuid, uuid) to authenticated;
+grant execute on function public.settle_my_texas_stake(uuid, integer) to authenticated;
 
 do $$
 declare
