@@ -80,6 +80,7 @@ window.GAMES = [
     emoji: "🧱",
     color: "#365b8c",
     tag: "Versión final",
+    cover: "Juegos/tetris.png",
     stats: [{ key: "linesCleared", label: "Líneas eliminadas" }],
     leaderboardStats: [
       { key: "games_played", label: "Partidas", source: "session" },
@@ -97,6 +98,7 @@ window.GAMES = [
     emoji: "🎁",
     color: "#705124",
     tag: "Versión final",
+    cover: "Juegos/cofres.jfif",
     stats: [{ key: "pirateTokens", label: "Tokens piratas" }],
     leaderboardStats: [
       { key: "games_played", label: "Partidas completadas", source: "session" },
