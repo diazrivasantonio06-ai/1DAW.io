@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Casino Aljarafe · dinero ficticio</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&display=swap" rel="stylesheet">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="../supabase-config.js"></script>
+<script defer src="../account.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#14664a;--felt:#1b7d5b;--ink:#fdf8e8;--gold:#f2c14e;--panel:rgba(0,0,0,.28);--red:#d62f3a;--card:#fffdf6;--cardink:#1a1a1a;--line:rgba(255,255,255,.22)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a2e22;--felt:#0f4a36;--panel:rgba(0,0,0,.4)}}
+:root[data-theme="dark"]{--bg:#0a2e22;--felt:#0f4a36;--panel:rgba(0,0,0,.4)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,var(--felt),var(--bg));color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+main{max-width:760px;margin:0 auto;padding:14px}
+h1{font:800 1.5rem Cinzel,Georgia,serif;margin:0;color:var(--gold);letter-spacing:.04em}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.bank{font:800 1.4rem Cinzel,Georgia,serif;background:var(--panel);border:1px solid var(--gold);border-radius:999px;padding:4px 16px}
+.sync-status{flex:1 1 100%;min-height:1.4em;margin:0;text-align:center;font-size:.82rem;opacity:.85}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}
+button{font:inherit;font-weight:600;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:8px 12px}
+button:hover:not(:disabled){border-color:var(--gold)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.primary{background:var(--gold);color:#2a1d00;border-color:var(--gold)}
+.chip.sel{background:var(--gold);color:#2a1d00;border-color:var(--gold)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button.on{background:var(--ink);color:#12382a}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:none}
+section.on{display:block}
+.msg{min-height:1.6em;font-weight:700;color:var(--gold);margin:10px 0;text-align:center}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:8px 0}
+.card{width:54px;height:78px;background:var(--card);color:var(--cardink);border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 1.25rem Georgia,serif;box-shadow:0 2px 6px rgba(0,0,0,.4);position:relative}
+.card.r{color:var(--red)}
+.card.back{background:repeating-linear-gradient(45deg,#8b1d2c,#8b1d2c 6px,#a8283a 6px,#a8283a 12px);border:3px solid var(--card)}
+.card.hold{transform:translateY(-10px);outline:3px solid var(--gold)}
+.card small{font-size:.65rem;position:absolute;bottom:3px;font-family:system-ui;color:var(--gold);background:#2a1d00;padding:0 4px;border-radius:3px}
+.lbl{font-size:.85rem;opacity:.85;text-align:center}
+.wwrap{position:relative;width:240px;height:240px;margin:6px auto}
+.disc{position:absolute;inset:0;border-radius:50%;border:6px solid var(--gold);transition:transform 4.6s cubic-bezier(.12,.6,.1,1);box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.disc span{position:absolute;left:50%;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;font:700 .62rem/24px system-ui;color:#fff;text-align:center}
+.hub{position:absolute;inset:70px;border-radius:50%;background:#111;border:4px solid var(--gold);display:flex;align-items:center;justify-content:center;font:800 2rem Cinzel,Georgia,serif;color:#fff;transition:background .2s}
+.hub.red{background:var(--red)}.hub.green{background:#117a3d}
+.ballr{position:absolute;inset:0;transition:transform 4.6s cubic-bezier(.2,.5,.2,1);pointer-events:none}
+.ball{position:absolute;top:9px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#fff;box-shadow:0 0 6px #000}
+.card.deal{animation:dealin .45s cubic-bezier(.2,.8,.3,1) both}
+@keyframes dealin{from{transform:translate(140px,-130px) rotate(25deg) scale(.7);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.card.deal{animation:none}}
+.hist{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;min-height:26px}
+.hist i{font-style:normal;font-size:.8rem;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#111;color:#fff}
+.hist i.red{background:var(--red)}.hist i.green{background:#117a3d}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:6px}
+.grid button.has{border-color:var(--gold);background:rgba(242,193,78,.25)}
+.reels{display:flex;gap:8px;justify-content:center;margin:10px 0}
+.reel{width:84px;height:96px;background:var(--card);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:3rem;border:4px solid var(--gold);box-shadow:inset 0 0 12px rgba(0,0,0,.35)}
+table{border-collapse:collapse;margin:8px auto;font-size:.85rem}
+td{padding:2px 10px;border-bottom:1px solid var(--line)}
+td.win{color:var(--gold);font-weight:800}
+input[type=number]{width:70px;font:inherit;padding:7px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+footer{text-align:center;font-size:.8rem;opacity:.75;margin:14px 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head>
+<body><main>
+<header><h1>Casino Aljarafe</h1><div class="bank">💰 <span id="bank">1000</span></div><p id="sync-status" class="sync-status" role="status" aria-live="polite">Saldo local. Inicia sesión para guardarlo y compararlo con tus amigos.</p></header>
+<div class="bar" id="chips"><span class="lbl">Apuesta:</span></div>
+<nav id="tabs"></nav>
+<div style="height:10px"></div>
+
+<section id="s-ruleta">
+ <div class="wwrap"><div class="disc" id="disc"></div><div class="ballr" id="ballr"><div class="ball"></div></div><div class="hub" id="wheel">0</div></div>
+ <div class="hist" id="hist"></div>
+ <p class="lbl">Pulsa una casilla para apostar la ficha elegida (puedes apostar a varias).</p>
+ <div class="grid" id="rgrid"></div>
+ <div class="row"><span class="lbl">Pleno (0–36):</span><input type="number" id="pn" min="0" max="36" value="17"><button id="pb">Apostar al número</button></div>
+ <div class="row"><button class="primary" id="spin">Girar</button><button id="rclear">Retirar apuestas</button></div>
+ <div class="msg" id="rmsg">Haz tus apuestas</div>
+</section>
+
+<section id="s-blackjack">
+ <div class="lbl">Crupier <b id="dv"></b></div><div class="row" id="dh"></div>
+ <div class="lbl">Tú <b id="pv"></b></div><div class="row" id="ph"></div>
+ <div class="msg" id="bmsg">Reparte para empezar. Blackjack paga 3:2.</div>
+ <div class="row"><button class="primary" id="bdeal">Repartir</button><button id="bhit">Pedir</button><button id="bstand">Plantarse</button><button id="bdbl">Doblar</button></div>
+</section>
+
+<section id="s-tragaperras">
+ <div class="reels" id="reels"><div class="reel">🍒</div><div class="reel">🍋</div><div class="reel">🔔</div></div>
+ <div class="msg" id="smsg">Gira los rodillos</div>
+ <div class="row"><button class="primary" id="sgo">Girar</button></div>
+ <table><tr><td>🍒🍒 (dos cerezas)</td><td class="win">×2</td></tr><tr><td>🍒🍒🍒</td><td class="win">×5</td></tr><tr><td>🍋🍋🍋</td><td class="win">×10</td></tr><tr><td>🔔🔔🔔</td><td class="win">×20</td></tr><tr><td>⭐⭐⭐</td><td class="win">×40</td></tr><tr><td>💎💎💎</td><td class="win">×100</td></tr><tr><td>7️⃣7️⃣7️⃣</td><td class="win">×200</td></tr></table>
+</section>
+
+<section id="s-poker">
+ <p class="lbl">Vídeo póker «jotas o mejor». Reparte, marca las cartas que te quedas y cambia el resto.</p>
+ <div class="row" id="pk"></div>
+ <div class="msg" id="kmsg">Pulsa Repartir</div>
+ <div class="row"><button class="primary" id="kdeal">Repartir</button><button id="kdraw" disabled>Cambiar</button></div>
+ <table id="ptab"></table>
+</section>
+
+<footer>Juego de entretenimiento con dinero ficticio. No se puede ganar ni perder dinero real.</footer>
+</main>
+<script>
+const $=s=>document.querySelector(s),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let bank=1000,bet=10,busy=false;
+let casinoClient=null,casinoSyncReady=false,casinoSaveTimer=0,casinoSaveQueue=Promise.resolve();
+try{const v=localStorage.getItem('casino-bank'),saved=v===null?NaN:Number(v);if(Number.isFinite(saved)&&saved>=0&&saved<=Number.MAX_SAFE_INTEGER)bank=saved}catch(e){}
+function formatCasinoMoney(value){return value.toLocaleString('es-ES',{maximumFractionDigits:1})}
+function setBank(d,save=true){bank=Math.max(0,Math.round((bank+d)*10)/10);$('#bank').textContent=formatCasinoMoney(bank);try{localStorage.setItem('casino-bank',bank)}catch(e){}
+ if(save)scheduleCasinoSave();
+ if(bank<5&&!busy)msgAll('Te has quedado sin fichas. Pulsa «Recargar 1000».');refreshBtn()}
+function msgAll(t){['#rmsg','#bmsg','#smsg','#kmsg'].forEach(s=>$(s).textContent=t)}
+function refreshBtn(){document.querySelectorAll('.chip').forEach(c=>c.disabled=false)}
+function getCasinoAccount(){try{if(window.parent!==window&&window.parent.location.origin===location.origin&&window.parent.ARCADE_ACCOUNT)return window.parent.ARCADE_ACCOUNT}catch(error){console.warn('No se pudo acceder a la cuenta de 1DAW.io.',error)}return window.ARCADE_ACCOUNT||null}
+function scheduleCasinoSave(){if(!casinoSyncReady||!casinoClient)return;clearTimeout(casinoSaveTimer);casinoSaveTimer=window.setTimeout(()=>{const snapshot=bank;casinoSaveQueue=casinoSaveQueue.then(async()=>{const{error}=await casinoClient.rpc('save_my_casino_balance',{p_balance:snapshot});if(error)throw error;if(snapshot===bank)$('#sync-status').textContent='Saldo guardado en tu cuenta de 1DAW.io.'}).catch(error=>{console.error('No se pudo guardar el saldo del casino:',error);$('#sync-status').textContent='No se pudo guardar el saldo: '+error.message})},450)}
+async function initializeCasinoAccount(){const account=getCasinoAccount();if(!account||!account.isConfigured()){return}const client=account.getClient();if(!client){$('#sync-status').textContent='No se pudo cargar la cuenta de 1DAW.io.';return}const{data:sessionData,error:sessionError}=await client.auth.getSession();if(sessionError)throw sessionError;if(!sessionData.session){$('#sync-status').textContent='Saldo local. Inicia sesión en 1DAW.io para guardarlo y compararlo con tus amigos.';return}const initialBank=bank;const{data,error}=await client.rpc('get_my_casino_balance');if(error)throw error;const savedBalance=Number(data);if(!Number.isFinite(savedBalance)||savedBalance<0||savedBalance>Number.MAX_SAFE_INTEGER)throw new Error('Supabase devolvió un saldo no válido.');const pendingChange=bank-initialBank;bank=Math.round(Math.max(0,savedBalance+pendingChange)*10)/10;$('#bank').textContent=formatCasinoMoney(bank);try{localStorage.setItem('casino-bank',bank)}catch(error){console.warn('No se pudo guardar el saldo local.',error)}casinoClient=client;casinoSyncReady=true;$('#sync-status').textContent='Saldo vinculado a tu cuenta de 1DAW.io.';if(pendingChange!==0)scheduleCasinoSave()}
+// fichas y pestañas
+const chipBar=$('#chips');
+[5,10,25,100].forEach(v=>{const b=document.createElement('button');b.className='chip'+(v==bet?' sel':'');b.textContent=v;b.onclick=()=>{bet=v;document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('sel',c==b))};chipBar.append(b)});
+const rb=document.createElement('button');rb.textContent='Recargar 1000';rb.onclick=()=>{if(busy)return;setBank(1000-bank);msgAll('Saldo recargado');clearBets(false)};chipBar.append(rb);
+const names={ruleta:'🎡 Ruleta',blackjack:'🃏 Blackjack',tragaperras:'🎰 Tragaperras',poker:'♠️ Póker'};
+Object.keys(names).forEach((k,i)=>{const b=document.createElement('button');b.textContent=names[k];b.onclick=()=>{if(busy)return;document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id=='s-'+k))};if(!i){b.classList.add('on');$('#s-'+k).classList.add('on')}$('#tabs').append(b)});
+// cartas
+function mkDeck(){const d=[];for(const s of '♠♥♦♣')for(const r of ['A','2','3','4','5','6','7','8','9','10','J','Q','K'])d.push({r,s});for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}return d}
+const cardEl=(c,hid,hold,an)=>`<div class="card ${hid?'back':(c.s=='♥'||c.s=='♦'?'r':'')} ${hold?'hold':''} ${an?'deal':''}">${hid?'':c.r+'<span>'+c.s+'</span>'}${hold?'<small>Mantener</small>':''}</div>`;
+// ===== RULETA =====
+const RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const RD=[['red','Rojo',2,n=>RED.has(n)],['black','Negro',2,n=>n>0&&!RED.has(n)],['even','Par',2,n=>n>0&&n%2==0],['odd','Impar',2,n=>n%2==1],['low','1–18',2,n=>n>=1&&n<=18],['high','19–36',2,n=>n>=19],['d1','1ª docena',3,n=>n>=1&&n<=12],['d2','2ª docena',3,n=>n>=13&&n<=24],['d3','3ª docena',3,n=>n>=25]];
+let bets={};
+const col=n=>n==0?'green':RED.has(n)?'red':'';
+function rRender(){const g=$('#rgrid');g.innerHTML='';
+ const all=RD.map(r=>[r[0],r[1]]);Object.keys(bets).filter(k=>k[0]=='n').forEach(k=>all.push([k,'Nº '+k.slice(1)]));
+ all.forEach(([k,l])=>{const b=document.createElement('button');b.textContent=l+(bets[k]?' · '+bets[k]:'');if(bets[k])b.className='has';b.onclick=()=>place(k);g.append(b)})}
+function place(k){if(busy)return;if(bank<bet){$('#rmsg').textContent='Saldo insuficiente';return}setBank(-bet);bets[k]=(bets[k]||0)+bet;rRender()}
+function clearBets(refund=true){if(busy)return;if(refund)setBank(Object.values(bets).reduce((a,b)=>a+b,0));bets={};rRender()}
+$('#pb').onclick=()=>{const n=Math.floor(+$('#pn').value);if(!(n>=0&&n<=36))return $('#rmsg').textContent='Elige un número del 0 al 36';place('n'+n)};
+$('#rclear').onclick=()=>clearBets();
+$('#spin').onclick=async()=>{if(busy)return;if(!Object.keys(bets).length)return $('#rmsg').textContent='Apuesta primero';
+ busy=true;$('#rmsg').textContent='No va más…';const w=$('#wheel');w.textContent='…';w.className='hub';
+ const n=Math.floor(Math.random()*37),idx=ORD.indexOf(n);
+ dRot=Math.ceil(dRot/360)*360+1800+(360-idx*ST);bRot-=360*7;
+ $('#disc').style.transform=`rotate(${dRot}deg)`;$('#ballr').style.transform=`rotate(${bRot}deg)`;
+ await sleep(4700);w.textContent=n;w.className='hub '+col(n);
+ let win=0,staked=0;for(const k in bets){staked+=bets[k];if(k[0]=='n'){if(+k.slice(1)==n)win+=bets[k]*36}else{const d=RD.find(r=>r[0]==k);if(d[3](n))win+=bets[k]*d[2]}}
+ const h=document.createElement('i');h.textContent=n;h.className=col(n);$('#hist').prepend(h);if($('#hist').children.length>14)$('#hist').lastChild.remove();
+ bets={};busy=false;setBank(win);rRender();
+ $('#rmsg').textContent=win>0?`Sale el ${n}. Ganas ${win} (neto ${win-staked>=0?'+':''}${win-staked})`:`Sale el ${n}. Pierdes ${staked}`};
+const ORD=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26],ST=360/37;let dRot=0,bRot=0;
+(function(){const d=$('#disc');d.style.background=`conic-gradient(from ${-ST/2}deg,${ORD.map((n,i)=>`${n==0?'#117a3d':RED.has(n)?'#d62f3a':'#151515'} ${i*ST}deg ${(i+1)*ST}deg`).join(',')})`;
+ d.innerHTML=ORD.map((n,i)=>`<span style="transform:rotate(${i*ST}deg) translateY(-96px)">${n}</span>`).join('')})();
+rRender();
+// ===== BLACKJACK =====
+let dk=[],bj={p:[],d:[],bet:0,on:false};
+const draw=()=>{if(dk.length<15)dk=mkDeck();return dk.pop()};
+function val(h){let t=0,a=0;h.forEach(c=>{if(c.r=='A'){a++;t+=11}else t+=['J','Q','K','10'].includes(c.r)?10:+c.r});while(t>21&&a){t-=10;a--}return t}
+let sh={p:0,d:0};
+function bRender(hide){$('#ph').innerHTML=bj.p.map((c,i)=>cardEl(c,0,0,i>=sh.p)).join('');$('#dh').innerHTML=bj.d.map((c,i)=>cardEl(c,hide&&i==1,0,i>=sh.d)).join('');sh.p=bj.p.length;sh.d=bj.d.length;
+ $('#pv').textContent=bj.p.length?'('+val(bj.p)+')':'';$('#dv').textContent=bj.d.length&&!hide?'('+val(bj.d)+')':'';
+ $('#bdeal').disabled=bj.on||busy;['#bhit','#bstand'].forEach(s=>$(s).disabled=!bj.on);$('#bdbl').disabled=!bj.on||bj.p.length!=2||bank<bj.bet}
+async function bEnd(){busy=true;bj.on=false;let pv=val(bj.p);const nat=bj.p.length==2&&pv==21;
+ bRender(false);await sleep(600);
+ while(pv<=21&&val(bj.d)<17&&!(nat)){bj.d.push(draw());bRender(false);await sleep(650)}
+ const dv=val(bj.d),dnat=bj.d.length==2&&dv==21;let pay=0,t;
+ if(pv>21)t='Te pasas. Pierdes '+bj.bet;
+ else if(nat&&!dnat){pay=bj.bet*2.5;t='¡Blackjack! Ganas '+bj.bet*1.5}
+ else if(dnat&&!nat)t='Blackjack del crupier. Pierdes '+bj.bet;
+ else if(dv>21||pv>dv){pay=bj.bet*2;t='Ganas '+bj.bet}
+ else if(pv==dv){pay=bj.bet;t='Empate. Recuperas tu apuesta'}
+ else t='Gana el crupier. Pierdes '+bj.bet;
+ busy=false;bRender(false);setBank(pay);$('#bmsg').textContent=t}
+$('#bdeal').onclick=async()=>{if(bank<bet)return $('#bmsg').textContent='Saldo insuficiente';setBank(-bet);busy=true;bj={p:[],d:[],bet,on:false};sh={p:0,d:0};$('#bmsg').textContent='Repartiendo…';bRender(true);
+ for(const w of ['p','d','p','d']){bj[w].push(draw());bRender(true);await sleep(400)}
+ busy=false;bj.on=true;$('#bmsg').textContent='¿Pides o te plantas?';bRender(true);if(val(bj.p)==21||val(bj.d)==21)bEnd()};
+$('#bhit').onclick=async()=>{bj.p.push(draw());if(val(bj.p)>=21){busy=true;bj.on=false;bRender(true);await sleep(500);bEnd()}else bRender(true)};
+$('#bstand').onclick=bEnd;
+$('#bdbl').onclick=async()=>{busy=true;setBank(-bj.bet);bj.bet*=2;bj.p.push(draw());bj.on=false;bRender(true);await sleep(550);bEnd()};
+bRender(true);
+// ===== TRAGAPERRAS =====
+const SY=[...'🍒🍒🍒🍒🍒🍒🍋🍋🍋🍋🍋🔔🔔🔔🔔⭐⭐⭐💎💎'],SEV='7️⃣',POOL=[...SY,SEV];
+const PAY={'🍒':5,'🍋':10,'🔔':20,'⭐':40,'💎':100,'7️⃣':200};
+$('#sgo').onclick=async()=>{if(busy)return;if(bank<bet)return $('#smsg').textContent='Saldo insuficiente';
+ busy=true;setBank(-bet);$('#smsg').textContent='Girando…';const rs=[...document.querySelectorAll('.reel')],res=[];
+ const rnd=()=>POOL[Math.floor(Math.random()*POOL.length)];
+ for(let i=0;i<3;i++)res.push(rnd());
+ for(let i=0;i<3;i++){for(let k=0;k<10+i*6;k++){for(let j=i;j<3;j++)rs[j].textContent=rnd();await sleep(60)}rs[i].textContent=res[i]}
+ let m=0;if(res[0]==res[1]&&res[1]==res[2])m=PAY[res[0]];else if(res[0]=='🍒'&&res[1]=='🍒')m=2;
+ busy=false;setBank(bet*m);$('#smsg').textContent=m?`¡Premio ×${m}! Ganas ${bet*m}`:'Sin premio. Prueba otra vez'};
+// ===== POKER =====
+const PT=[['Escalera real',250],['Escalera de color',50],['Póker',25],['Full',9],['Color',6],['Escalera',4],['Trío',3],['Doble pareja',2],['Pareja de jotas o mejor',1]];
+$('#ptab').innerHTML=PT.map(p=>`<tr><td>${p[0]}</td><td class="win">×${p[1]}</td></tr>`).join('');
+let kh=[],ks=[false,false,false,false,false],kd=[],kb=0,kon=false;
+const RV={A:14,K:13,Q:12,J:11};const rv=c=>RV[c.r]||+c.r;
+function evalH(h){const v=h.map(rv).sort((a,b)=>a-b),cnt={};v.forEach(x=>cnt[x]=(cnt[x]||0)+1);
+ const c=Object.values(cnt).sort((a,b)=>b-a),fl=h.every(x=>x.s==h[0].s);
+ const st=new Set(v).size==5&&(v[4]-v[0]==4||v.join()=='2,3,4,5,14');
+ if(st&&fl)return v[0]==10?0:1;if(c[0]==4)return 2;if(c[0]==3&&c[1]==2)return 3;if(fl)return 4;if(st)return 5;if(c[0]==3)return 6;if(c[0]==2&&c[1]==2)return 7;
+ if(c[0]==2&&Object.keys(cnt).some(k=>cnt[k]==2&&+k>=11))return 8;return -1}
+function kRender(){$('#pk').innerHTML=kh.map((c,i)=>`<div data-i="${i}" style="cursor:${kon?'pointer':'default'}">${cardEl(c,false,kon&&ks[i])}</div>`).join('');
+ document.querySelectorAll('#pk [data-i]').forEach(e=>e.onclick=()=>{if(!kon)return;ks[+e.dataset.i]=!ks[+e.dataset.i];kRender()});
+ $('#kdeal').disabled=kon;$('#kdraw').disabled=!kon}
+$('#kdeal').onclick=()=>{if(bank<bet)return $('#kmsg').textContent='Saldo insuficiente';setBank(-bet);kb=bet;kd=mkDeck();kh=kd.splice(0,5);ks=[false,false,false,false,false];kon=true;$('#kmsg').textContent='Toca las cartas que quieres mantener';kRender()};
+$('#kdraw').onclick=()=>{kh=kh.map((c,i)=>ks[i]?c:kd.pop());kon=false;const r=evalH(kh);kRender();
+ if(r<0)$('#kmsg').textContent='Sin premio';else{setBank(kb*PT[r][1]);$('#kmsg').textContent=`${PT[r][0]}: ganas ${kb*PT[r][1]}`}};
+setBank(0);
+window.addEventListener('DOMContentLoaded',()=>{initializeCasinoAccount().catch(error=>{console.error('No se pudo sincronizar el saldo del casino:',error);$('#sync-status').textContent='No se pudo sincronizar el saldo: '+error.message})},{once:true});
+</script>
+</body></html>

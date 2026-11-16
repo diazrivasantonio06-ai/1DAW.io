@@ -107,5 +107,17 @@ window.GAMES = [
       { key: "pirateTokens", label: "Tokens piratas" }
     ],
     src: "Juegos/500%20cofres%20animados.html"
+  },
+  {
+    id: "casino-aljarafe",
+    title: "Casino Aljarafe",
+    desc: "Ruleta, blackjack, tragaperras y póker con dinero ficticio.",
+    emoji: "🎰",
+    color: "#14664a",
+    tag: "Dinero ficticio",
+    leaderboardStats: [
+      { key: "balance", label: "Dinero", source: "casino-balance" }
+    ],
+    src: "Juegos/Casino%20Aljarafe.html"
   }
 ];

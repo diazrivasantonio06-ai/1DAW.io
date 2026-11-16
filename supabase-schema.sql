@@ -591,6 +591,100 @@ create index if not exists friend_requests_receiver_idx
 create index if not exists friendships_user_b_idx
   on public.friendships (user_b, user_a);
 
+create table if not exists public.casino_balances (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  balance numeric(20, 1) not null default 1000 check (balance between 0 and 9007199254740991),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.casino_balances enable row level security;
+revoke all on public.casino_balances from public, anon, authenticated;
+
+create or replace function public.get_my_casino_balance()
+returns numeric
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+
+  return coalesce(
+    (select casino.balance from public.casino_balances as casino where casino.user_id = v_user_id),
+    1000.0::numeric
+  );
+end;
+$$;
+
+create or replace function public.save_my_casino_balance(p_balance numeric)
+returns numeric
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  if p_balance is null
+    or p_balance < 0
+    or p_balance > 9007199254740991
+    or p_balance <> round(p_balance, 1) then
+    raise exception 'El saldo debe ser positivo y tener como máximo un decimal.';
+  end if;
+
+  insert into public.casino_balances (user_id, balance, updated_at)
+  values (v_user_id, p_balance, now())
+  on conflict (user_id) do update
+    set balance = excluded.balance,
+        updated_at = excluded.updated_at;
+  return p_balance;
+end;
+$$;
+
+create or replace function public.get_friend_casino_leaderboard()
+returns table (
+  display_name text,
+  balance numeric
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+
+  return query
+    with friend_ids as (
+      select case
+        when friendship.user_a = v_user_id then friendship.user_b
+        else friendship.user_a
+      end as user_id
+      from public.friendships as friendship
+      where friendship.user_a = v_user_id or friendship.user_b = v_user_id
+      union
+      select v_user_id
+    )
+    select profile.display_name, coalesce(casino.balance, 1000.0::numeric)
+    from friend_ids
+    join public.profiles as profile on profile.id = friend_ids.user_id
+    left join public.casino_balances as casino on casino.user_id = profile.id
+    order by coalesce(casino.balance, 1000.0::numeric) desc, lower(profile.display_name);
+end;
+$$;
+
 create table if not exists public.chats (
   id uuid primary key default gen_random_uuid(),
   is_group boolean not null default false,
@@ -1368,6 +1462,9 @@ revoke all on function public.create_group_chat(uuid[], text) from public, anon,
 revoke all on function public.get_friend_chats() from public, anon, authenticated;
 revoke all on function public.get_chat_messages(uuid, bigint) from public, anon, authenticated;
 revoke all on function public.send_chat_message(uuid, text) from public, anon, authenticated;
+revoke all on function public.get_my_casino_balance() from public, anon, authenticated;
+revoke all on function public.save_my_casino_balance(numeric) from public, anon, authenticated;
+revoke all on function public.get_friend_casino_leaderboard() from public, anon, authenticated;
 grant execute on function public.get_friend_list() to authenticated;
 grant execute on function public.get_friend_requests() to authenticated;
 grant execute on function public.search_friends(text) to authenticated;
@@ -1382,6 +1479,9 @@ grant execute on function public.create_group_chat(uuid[], text) to authenticate
 grant execute on function public.get_friend_chats() to authenticated;
 grant execute on function public.get_chat_messages(uuid, bigint) to authenticated;
 grant execute on function public.send_chat_message(uuid, text) to authenticated;
+grant execute on function public.get_my_casino_balance() to authenticated;
+grant execute on function public.save_my_casino_balance(numeric) to authenticated;
+grant execute on function public.get_friend_casino_leaderboard() to authenticated;
 
 do $$
 begin

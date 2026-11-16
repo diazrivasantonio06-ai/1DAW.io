@@ -58,7 +58,9 @@ function renderRows(players) {
     const cell = document.createElement("td");
     cell.className = "leaderboard-empty";
     cell.colSpan = 2 + columns.length;
-    cell.textContent = "Todavía no hay partidas guardadas para este juego.";
+    cell.textContent = gameFilter.value === "casino-aljarafe"
+      ? "No hay saldos de amigos para mostrar. Añade amigos y jugad al Casino Aljarafe."
+      : "Todavía no hay partidas guardadas para este juego.";
     row.append(cell);
     rows.append(row);
     return;
@@ -70,9 +72,11 @@ function renderRows(players) {
       formatNumber(index + 1),
       player.display_name,
       ...columns.map((column) => {
-        const value = column.source === "session"
+        const value = column.source === "casino-balance"
           ? player[column.key]
-          : player.game_stats && player.game_stats[column.key];
+          : column.source === "session"
+            ? player[column.key]
+            : player.game_stats && player.game_stats[column.key];
         if (column.key === "total_seconds") return formatDuration(value || 0);
         return formatNumber(value === null || value === undefined ? 0 : value);
       })
@@ -102,9 +106,17 @@ async function loadLeaderboard() {
     if (!client) {
       throw new Error("No se pudo cargar la librería de Supabase.");
     }
-    const { data, error } = await client.rpc("get_leaderboard", {
-      p_game_id: gameFilter.value || null
-    });
+    const isCasinoLeaderboard = gameFilter.value === "casino-aljarafe";
+    if (isCasinoLeaderboard) {
+      const { data: sessionData, error: sessionError } = await client.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!sessionData.session) {
+        throw new Error("Inicia sesión para ver el saldo de tus amigos");
+      }
+    }
+    const { data, error } = isCasinoLeaderboard
+      ? await client.rpc("get_friend_casino_leaderboard")
+      : await client.rpc("get_leaderboard", { p_game_id: gameFilter.value || null });
     if (error) throw error;
 
     const players = Array.isArray(data) ? data : [];
