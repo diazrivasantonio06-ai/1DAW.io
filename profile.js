@@ -6,6 +6,12 @@ const authForm = document.querySelector("#auth-form");
 const profilePanel = document.querySelector("#profile-panel");
 const authStatus = document.querySelector("#account-status");
 const profileStatus = document.querySelector("#profile-status");
+const adminPanel = document.querySelector("#admin-panel");
+const adminSearchForm = document.querySelector("#admin-search-form");
+const adminSearchQuery = document.querySelector("#admin-search-query");
+const adminSearchSubmit = document.querySelector("#admin-search-submit");
+const adminStatus = document.querySelector("#admin-status");
+const adminResults = document.querySelector("#admin-results");
 const displayNameField = document.querySelector("#display-name-field");
 const authTitle = document.querySelector("#auth-title");
 const submitAuth = document.querySelector("#submit-auth");
@@ -14,6 +20,7 @@ let creatingAccount = false;
 let profileRequest = 0;
 let currentClient = null;
 let currentProfile = null;
+let currentUserId = null;
 let savingCosmetic = false;
 
 const LEVEL_MINUTES = [4, 4, 6, 7, 8, 8, 10, 11, 12, 12, 13, 14, 15, 15];
@@ -312,9 +319,106 @@ function renderHistory(sessions) {
   });
 }
 
+function renderAdminProfiles(profiles) {
+  adminResults.replaceChildren();
+  profiles.forEach((profile) => {
+    const row = document.createElement("article");
+    row.className = "admin-user";
+    const name = document.createElement("strong");
+    name.className = "admin-user-name";
+    name.textContent = profile.display_name;
+
+    const actions = document.createElement("div");
+    actions.className = "admin-user-actions";
+    const adminLabel = document.createElement("label");
+    adminLabel.className = "admin-role-option";
+    const adminCheckbox = document.createElement("input");
+    adminCheckbox.type = "checkbox";
+    adminCheckbox.checked = profile.is_admin;
+    adminCheckbox.disabled = profile.user_id === currentUserId;
+    const adminText = document.createElement("span");
+    adminText.textContent = "Admin";
+    adminLabel.append(adminCheckbox, adminText);
+
+    const vipLabel = document.createElement("label");
+    vipLabel.className = "admin-role-option";
+    const vipCheckbox = document.createElement("input");
+    vipCheckbox.type = "checkbox";
+    vipCheckbox.checked = profile.is_vip;
+    const vipText = document.createElement("span");
+    vipText.textContent = "VIP";
+    vipLabel.append(vipCheckbox, vipText);
+
+    const saveButton = document.createElement("button");
+    saveButton.className = "btn secondary";
+    saveButton.type = "button";
+    saveButton.textContent = "Guardar roles";
+    saveButton.addEventListener("click", () => {
+      void saveAdminRoles(profile, adminCheckbox, vipCheckbox, saveButton);
+    });
+
+    actions.append(adminLabel, vipLabel, saveButton);
+    row.append(name, actions);
+    adminResults.append(row);
+  });
+}
+
+async function saveAdminRoles(profile, adminCheckbox, vipCheckbox, saveButton) {
+  if (!currentProfile || !currentProfile.is_admin || !currentClient) return;
+  saveButton.disabled = true;
+  showStatus(adminStatus, `Guardando roles de ${profile.display_name}…`, false);
+  try {
+    const { data, error } = await currentClient.rpc("admin_set_profile_roles", {
+      p_user_id: profile.user_id,
+      p_is_admin: adminCheckbox.checked,
+      p_is_vip: vipCheckbox.checked
+    });
+    if (error) throw error;
+    const saved = Array.isArray(data) ? data[0] : data;
+    if (!saved) throw new Error("Supabase no devolvió los roles guardados.");
+    profile.is_admin = saved.is_admin;
+    profile.is_vip = saved.is_vip;
+    adminCheckbox.checked = saved.is_admin;
+    vipCheckbox.checked = saved.is_vip;
+    if (saved.user_id === currentUserId && currentProfile) {
+      currentProfile.is_admin = saved.is_admin;
+      currentProfile.is_vip = saved.is_vip;
+      renderProfileBadges(currentProfile);
+    }
+    showStatus(adminStatus, `Roles actualizados para ${saved.display_name}.`, false);
+  } catch (error) {
+    showStatus(adminStatus, `No se pudieron guardar los roles: ${error.message}`, true);
+  } finally {
+    saveButton.disabled = false;
+  }
+}
+
+adminSearchForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!currentProfile || !currentProfile.is_admin || !currentClient) return;
+  const query = adminSearchQuery.value.trim();
+  adminSearchSubmit.disabled = true;
+  adminResults.replaceChildren();
+  showStatus(adminStatus, "Buscando jugadores…", false);
+  try {
+    const { data, error } = await currentClient.rpc("admin_search_profiles", { p_query: query });
+    if (error) throw error;
+    const profiles = Array.isArray(data) ? data : [];
+    renderAdminProfiles(profiles);
+    showStatus(adminStatus, profiles.length ? `${profiles.length} jugador(es) encontrado(s).` : "No se encontraron jugadores.", false);
+  } catch (error) {
+    showStatus(adminStatus, `No se pudieron buscar jugadores: ${error.message}`, true);
+  } finally {
+    adminSearchSubmit.disabled = false;
+  }
+});
+
 async function loadProfile(client, user) {
   const request = ++profileRequest;
   currentProfile = null;
+  currentUserId = user.id;
+  adminPanel.hidden = true;
+  adminResults.replaceChildren();
   profilePanel.hidden = false;
   authPanel.hidden = true;
   setupNotice.hidden = true;
@@ -351,6 +455,7 @@ async function loadProfile(client, user) {
   currentProfile = profileResult.data;
   document.querySelector("#profile-name").textContent = currentProfile.display_name;
   renderProfileBadges(currentProfile);
+  adminPanel.hidden = !currentProfile.is_admin;
   document.querySelector("#total-games").textContent = String(totals.games);
   document.querySelector("#total-time").textContent = formatDuration(totals.seconds);
   document.querySelector("#total-kills").textContent = String(totals.kills);
@@ -368,6 +473,9 @@ function renderSession(client, session) {
   } else {
     profileRequest += 1;
     currentProfile = null;
+    currentUserId = null;
+    adminPanel.hidden = true;
+    adminResults.replaceChildren();
     profilePanel.hidden = true;
     authPanel.hidden = false;
     setAuthMode(false);

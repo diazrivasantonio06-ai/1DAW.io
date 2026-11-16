@@ -75,6 +75,17 @@
     .cosmetic-banner-swatch { width: 100%; height: 30px; grid-column: 1 / -1; border-radius: .5rem; }
     .cosmetic-name { font-weight: 700; }
     .cosmetic-state { color: var(--muted); font-size: .82rem; }
+    .admin-panel { margin-top: 2rem; padding: 1.2rem; border: 1px solid var(--pink); border-radius: 1rem; background: var(--panel-raised); }
+    .admin-panel > p { color: var(--muted); }
+    .admin-search-form { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; margin: 1rem 0; }
+    .admin-search-form label { display: grid; flex: 1 1 220px; gap: .35rem; font-weight: 700; }
+    .admin-search-form input { width: 100%; min-height: 46px; padding: .65rem .8rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--bg); color: var(--text); }
+    .admin-results { display: grid; gap: .65rem; }
+    .admin-user { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: .8rem; border: 1px solid var(--line); border-radius: .8rem; background: var(--panel); }
+    .admin-user-name { min-width: 120px; overflow-wrap: anywhere; }
+    .admin-user-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; }
+    .admin-role-option { display: inline-flex; align-items: center; gap: .35rem; }
+    .admin-role-option input { accent-color: var(--pink); }
     .history { display: grid; gap: .6rem; padding: 0; list-style: none; }
     .history li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3rem 1rem; padding: .8rem 0; border-bottom: 1px solid var(--line); }
     .history small { color: var(--muted); }
@@ -87,7 +98,7 @@
   <script defer src="presence.js"></script>
   <script defer src="friends.js?v=7"></script>
   <script defer src="games.js?v=6"></script>
-  <script defer src="profile.js?v=2"></script>
+  <script defer src="profile.js?v=3"></script>
 </head>
 <body>
   <div class="wrap">
@@ -188,6 +199,19 @@
               <div id="banner-options" class="cosmetic-grid"></div>
             </div>
             <p id="cosmetic-status" class="account-status" aria-live="polite"></p>
+          </section>
+          <section id="admin-panel" class="admin-panel" aria-labelledby="admin-panel-title" hidden>
+            <h2 id="admin-panel-title">Panel de administración</h2>
+            <p>Busca un jugador para gestionar sus roles Admin y VIP.</p>
+            <form id="admin-search-form" class="admin-search-form">
+              <label for="admin-search-query">
+                Nombre del jugador
+                <input id="admin-search-query" type="search" minlength="2" maxlength="24" autocomplete="off" required>
+              </label>
+              <button id="admin-search-submit" class="btn" type="submit">Buscar jugadores</button>
+            </form>
+            <p id="admin-status" class="account-status" aria-live="polite"></p>
+            <div id="admin-results" class="admin-results"></div>
           </section>
         </section>
       </section>

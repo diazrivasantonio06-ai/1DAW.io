@@ -24,6 +24,13 @@ set is_admin = true,
 where lower(btrim(display_name)) in ('antoniodr', 'ivangavg')
   and (not is_admin or not is_vip);
 
+update public.profiles
+set is_admin = true,
+    is_vip = true
+where lower(btrim(display_name)) = 'rumpedie'
+  and (select count(*) from public.profiles where lower(btrim(display_name)) = 'rumpedie') = 1
+  and (not is_admin or not is_vip);
+
 alter table public.profiles enable row level security;
 
 drop policy if exists "Users can read their own profile" on public.profiles;
@@ -40,6 +47,111 @@ create policy "Users can update their own profile"
 revoke update on public.profiles from public, anon, authenticated;
 grant select on public.profiles to authenticated;
 grant update (display_name) on public.profiles to authenticated;
+
+create or replace function public.admin_search_profiles(p_query text)
+returns table (
+  user_id uuid,
+  display_name text,
+  is_admin boolean,
+  is_vip boolean
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_query text := btrim(coalesce(p_query, ''));
+begin
+  if auth.uid() is null or not exists (
+    select 1
+    from public.profiles as profile
+    where profile.id = auth.uid()
+      and profile.is_admin
+  ) then
+    raise exception 'Se requiere el rol Admin.' using errcode = '42501';
+  end if;
+  if char_length(v_query) < 2 then
+    raise exception 'Escribe al menos dos caracteres para buscar.';
+  end if;
+
+  return query
+    select profile.id, profile.display_name, profile.is_admin, profile.is_vip
+    from public.profiles as profile
+    where profile.display_name ilike '%' || v_query || '%'
+    order by lower(profile.display_name)
+    limit 50;
+end;
+$$;
+
+create or replace function public.admin_set_profile_roles(
+  p_user_id uuid,
+  p_is_admin boolean,
+  p_is_vip boolean
+)
+returns table (
+  user_id uuid,
+  display_name text,
+  is_admin boolean,
+  is_vip boolean
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_was_admin boolean;
+  v_admin_count bigint;
+begin
+  perform pg_advisory_xact_lock(745021, 1);
+  if auth.uid() is null or not exists (
+    select 1
+    from public.profiles as profile
+    where profile.id = auth.uid()
+      and profile.is_admin
+  ) then
+    raise exception 'Se requiere el rol Admin.' using errcode = '42501';
+  end if;
+  if p_user_id is null or p_is_admin is null or p_is_vip is null then
+    raise exception 'Indica el usuario y ambos roles.';
+  end if;
+
+  select profile.is_admin
+  into v_was_admin
+  from public.profiles as profile
+  where profile.id = p_user_id
+  for update;
+  if not found then
+    raise exception 'No se encontró ese perfil.';
+  end if;
+  if p_user_id = auth.uid() and not p_is_admin then
+    raise exception 'No puedes quitarte tu propio rol Admin.';
+  end if;
+  if v_was_admin and not p_is_admin then
+    select count(*) into v_admin_count
+    from public.profiles as profile
+    where profile.is_admin;
+    if v_admin_count <= 1 then
+      raise exception 'No se puede quitar el rol al último Admin.';
+    end if;
+  end if;
+
+  update public.profiles as profile
+  set is_admin = p_is_admin,
+      is_vip = p_is_vip
+  where profile.id = p_user_id;
+
+  return query
+    select profile.id, profile.display_name, profile.is_admin, profile.is_vip
+    from public.profiles as profile
+    where profile.id = p_user_id;
+end;
+$$;
+
+revoke all on function public.admin_search_profiles(text) from public, anon, authenticated;
+revoke all on function public.admin_set_profile_roles(uuid, boolean, boolean) from public, anon, authenticated;
+grant execute on function public.admin_search_profiles(text) to authenticated;
+grant execute on function public.admin_set_profile_roles(uuid, boolean, boolean) to authenticated;
 
 create or replace function public.create_profile_for_new_user()
 returns trigger
