@@ -155,5 +155,22 @@ window.GAMES = [
       { key: "pirateTokens", label: "Tokens piratas" }
     ],
     src: "Juegos/500%20cofres%20animados.html"
+  },
+  {
+    id: "Ajedrez",
+    title: "Ajedrez",
+    desc: "Juega contra la IA, con un mentor  o con amigos en partidas de ajedrez clásico.",
+    emoji: "♟️",
+    color: "#3a5f7a",
+    tag: "v1.0",
+    cover: "Juegos/ajedrez.jfif",
+    stats: [{ key: "pirateTokens", label: "Tokens piratas" }],
+    leaderboardStats: [
+      { key: "games_played", label: "Partidas completadas", source: "session" },
+      { key: "total_chests_opened", label: "Cofres abiertos", source: "session" },
+      { key: "total_seconds", label: "Tiempo empleado", source: "session" },
+      { key: "pirateTokens", label: "Tokens piratas" }
+    ],
+    src: "Juegos/Ajedrez.html"
   }
 ];
